@@ -18,3 +18,4 @@ dist/
 .next/
 out/
 build/
+smart-contract/lib/

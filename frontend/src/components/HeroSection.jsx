@@ -16,14 +16,15 @@ const PlayIcon = ({ className }) => (
 const HeroSection = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden w-full max-w-full">
-      {/* Gradient background - darker and larger */}
+      {/* Gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-success/20 via-background to-accent/20" />
-      {/* Enhanced professional glow orbs - darker and larger */}
-      <div className="absolute -top-24 -left-72 w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.22)_0%,_transparent_70%)]" />
-      <div className="absolute top-1/2 right-[-20rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
-      <div className="absolute bottom-[-12rem] left-1/4 w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.16)_0%,_transparent_70%)]" />
       
-      <div className="container mx-auto px-8 lg:px-12 pt-32 pb-12 relative z-10">
+      {/* Glow orbs: same intensity, reduced size */}
+      <div className="absolute -top-20 -left-56 w-[24rem] h-[24rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.22)_0%,_transparent_70%)]" />
+      <div className="absolute top-1/2 right-[-16rem] w-[24rem] h-[24rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
+      <div className="absolute bottom-[-10rem] left-1/4 w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.16)_0%,_transparent_70%)]" />
+
+      <div className="container mx-auto px-8 lg:px-20 pt-32 pb-12 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Content */}
           <div className="space-y-8">
@@ -77,7 +78,7 @@ const HeroSection = () => {
               />
               <div className="absolute inset-0 bg-gradient-to-tr from-success/10 to-transparent" />
             </div>
-            
+
             {/* Floating badges */}
             <div className="absolute -top-4 -right-4 card-floating bg-white p-4 float-delayed">
               <div className="flex items-center gap-2">
@@ -85,7 +86,7 @@ const HeroSection = () => {
                 <span className="text-sm font-medium">Live Platform</span>
               </div>
             </div>
-            
+
             <div className="absolute -bottom-4 -left-4 card-floating bg-white p-4 float">
               <div className="text-center">
                 <div className="text-lg font-bold text-gradient-green">100%</div>

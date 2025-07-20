@@ -60,8 +60,8 @@ const Dashboard = () => {
         {/* Dashboard Header */}
         <section className="py-12 relative overflow-hidden w-full max-w-full">
           <div className="absolute inset-0 bg-gradient-to-br from-success/18 via-background to-accent/18" />
-          <div className="absolute -top-24 -left-72 w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.22)_0%,_transparent_70%)]" />
-          <div className="absolute top-1/2 right-[-20rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
+          <div className="absolute top-1/2 left-[-10rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.22)_0%,_transparent_70%)] -translate-y-1/2" />
+          <div className="absolute top-1/2 right-[-10rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
           
           <div className="container mx-auto px-8 lg:px-12 relative z-10">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
@@ -105,8 +105,8 @@ const Dashboard = () => {
             {/* Freelancer Stats */}
             <section className="py-8 relative overflow-hidden w-full max-w-full">
               {/* Gradient orbs for Freelancer Stats */}
-              <div className="absolute top-[-6rem] left-[-10rem] w-[16rem] h-[16rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.16)_0%,_transparent_70%)]" />
-              <div className="absolute bottom-[-4rem] right-[-8rem] w-[14rem] h-[14rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)]" />
+              <div className="absolute top-1/2 left-[-8rem] w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.16)_0%,_transparent_70%)] -translate-y-1/2" />
+              <div className="absolute top-1/2 right-[-8rem] w-[16rem] h-[16rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] -translate-y-1/2" />
               
               <div className="container mx-auto px-8 lg:px-12">
                 <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
@@ -185,8 +185,8 @@ const Dashboard = () => {
             {/* Ongoing Projects */}
             <section className="py-8 relative overflow-hidden w-full max-w-full">
               {/* Gradient orbs for Ongoing Projects */}
-              <div className="absolute top-[-8rem] left-1/3 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)]" />
-              <div className="absolute bottom-[-6rem] right-[-10rem] w-[16rem] h-[16rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.16)_0%,_transparent_70%)]" />
+              <div className="absolute top-1/2 left-1/4 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
+              <div className="absolute top-1/2 right-1/4 w-[16rem] h-[16rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.16)_0%,_transparent_70%)] -translate-y-1/2" />
               
               <div className="container mx-auto px-8 lg:px-12">
                 <h2 className="text-2xl font-bold mb-6">Ongoing Projects</h2>
@@ -225,8 +225,8 @@ const Dashboard = () => {
             {/* Completed Projects */}
             <section className="py-8 relative overflow-hidden w-full max-w-full">
               {/* Gradient orbs for Completed Projects */}
-              <div className="absolute top-[-6rem] left-[-8rem] w-[14rem] h-[14rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)]" />
-              <div className="absolute bottom-[-8rem] right-1/4 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)]" />
+              <div className="absolute top-1/2 left-[-6rem] w-[14rem] h-[14rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] -translate-y-1/2" />
+              <div className="absolute top-1/2 right-1/4 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
               
               <div className="container mx-auto px-8 lg:px-12">
                 <h2 className="text-2xl font-bold mb-6">Completed Projects</h2>
@@ -262,8 +262,8 @@ const Dashboard = () => {
             {/* Client Stats */}
             <section className="py-8 relative overflow-hidden w-full max-w-full">
               {/* Gradient orbs for Client Stats */}
-              <div className="absolute top-[-6rem] left-[-10rem] w-[16rem] h-[16rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.16)_0%,_transparent_70%)]" />
-              <div className="absolute bottom-[-4rem] right-[-8rem] w-[14rem] h-[14rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)]" />
+              <div className="absolute top-1/2 left-[-8rem] w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.16)_0%,_transparent_70%)] -translate-y-1/2" />
+              <div className="absolute top-1/2 right-[-8rem] w-[16rem] h-[16rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] -translate-y-1/2" />
               
               <div className="container mx-auto px-8 lg:px-12">
                 <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
@@ -342,8 +342,8 @@ const Dashboard = () => {
             {/* Client Ongoing Projects */}
             <section className="py-8 relative overflow-hidden w-full max-w-full">
               {/* Gradient orbs for Client Ongoing Projects */}
-              <div className="absolute top-[-8rem] left-1/3 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)]" />
-              <div className="absolute bottom-[-6rem] right-[-10rem] w-[16rem] h-[16rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.16)_0%,_transparent_70%)]" />
+              <div className="absolute top-1/2 left-1/4 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
+              <div className="absolute top-1/2 right-1/4 w-[16rem] h-[16rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.16)_0%,_transparent_70%)] -translate-y-1/2" />
               
               <div className="container mx-auto px-8 lg:px-12">
                 <h2 className="text-2xl font-bold mb-6">Active Projects</h2>
@@ -382,8 +382,8 @@ const Dashboard = () => {
             {/* Client Completed Projects */}
             <section className="py-8 relative overflow-hidden w-full max-w-full">
               {/* Gradient orbs for Client Completed Projects */}
-              <div className="absolute top-[-6rem] left-[-8rem] w-[14rem] h-[14rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)]" />
-              <div className="absolute bottom-[-8rem] right-1/4 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)]" />
+              <div className="absolute top-1/2 left-[-6rem] w-[14rem] h-[14rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] -translate-y-1/2" />
+              <div className="absolute top-1/2 right-1/4 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
               
               <div className="container mx-auto px-8 lg:px-12">
                 <h2 className="text-2xl font-bold mb-6">Completed Projects</h2>
