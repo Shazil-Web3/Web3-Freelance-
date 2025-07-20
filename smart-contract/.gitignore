@@ -19,3 +19,4 @@ dist/
 out/
 build/
 smart-contract/lib/
+lib/

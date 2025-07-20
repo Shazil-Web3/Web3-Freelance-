@@ -58,12 +58,12 @@ const Dashboard = () => {
       
       <main className="pt-20">
         {/* Dashboard Header */}
-        <section className="py-12 relative overflow-hidden w-full max-w-full">
+        <section className="py-12 px-12 lg:px-28 relative overflow-hidden w-full">
           <div className="absolute inset-0 bg-gradient-to-br from-success/18 via-background to-accent/18" />
           <div className="absolute top-1/2 left-[-10rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.22)_0%,_transparent_70%)] -translate-y-1/2" />
           <div className="absolute top-1/2 right-[-10rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
           
-          <div className="container mx-auto px-8 lg:px-12 relative z-10">
+          <div className="container mx-auto relative z-10">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
               <div className="flex-1">
                 <h1 className="text-4xl font-bold mb-2">
@@ -103,12 +103,12 @@ const Dashboard = () => {
         {userType === 'freelancer' ? (
           <>
             {/* Freelancer Stats */}
-            <section className="py-8 relative overflow-hidden w-full max-w-full">
+            <section className="py-8 px-12 lg:px-28 relative overflow-hidden w-full">
               {/* Gradient orbs for Freelancer Stats */}
               <div className="absolute top-1/2 left-[-8rem] w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.16)_0%,_transparent_70%)] -translate-y-1/2" />
               <div className="absolute top-1/2 right-[-8rem] w-[16rem] h-[16rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] -translate-y-1/2" />
               
-              <div className="container mx-auto px-8 lg:px-12">
+              <div className="container mx-auto">
                 <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                   <div className="card-floating p-6">
                     <div className="flex items-center justify-between mb-4">

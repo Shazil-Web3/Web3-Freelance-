@@ -89,13 +89,17 @@ export const FAQSection = () => {
                   )}
                 </button>
 
-                {openIndex === index && (
-                  <div className="px-8 pb-6 animate-fade-in-up">
+                <div 
+                  className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                    openIndex === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                  }`}
+                >
+                  <div className="px-8 pb-6">
                     <p className="text-muted-foreground leading-relaxed">
                       {faq.answer}
                     </p>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           ))}

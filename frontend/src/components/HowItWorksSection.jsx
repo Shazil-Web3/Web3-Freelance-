@@ -44,7 +44,7 @@ const steps = [
 
 const HowItWorksSection = () => {
   return (
-    <section className="py-24 relative overflow-hidden w-full max-w-full">
+    <section id="how-it-works" className="py-24 relative overflow-hidden w-full max-w-full">
       {/* Enhanced darker and larger glow orbs */}
       <div className="absolute top-[-10rem] left-[-16rem] w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.22)_0%,_transparent_70%)]" />
       <div className="absolute bottom-[-8rem] right-[-20rem] w-[32rem] h-[32rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.18)_0%,_transparent_70%)]" />

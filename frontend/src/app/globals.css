@@ -192,6 +192,58 @@
     transform: translateY(-2px);
   }
 
+  /* Wallet Connect Button Gradient */
+  .wallet-gradient-btn:not(.wallet-connected) {
+    background: linear-gradient(135deg, hsl(var(--glow-green-start)), hsl(var(--glow-green-end)));
+    padding: 2px;
+    border-radius: 12px;
+    position: relative;
+  }
+
+  .wallet-gradient-btn:not(.wallet-connected)::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, hsl(var(--glow-green-start)), hsl(var(--glow-green-end)));
+    opacity: 0.6;
+    filter: blur(8px);
+    z-index: -1;
+    transition: opacity 0.3s ease;
+  }
+
+  .wallet-gradient-btn:not(.wallet-connected):hover::before {
+    opacity: 0.8;
+  }
+
+  /* Override RainbowKit button colors when not connected */
+  .wallet-gradient-btn:not(.wallet-connected) button {
+    background: hsl(var(--success)) !important;
+    color: hsl(var(--success-foreground)) !important;
+    border-radius: 10px !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .wallet-gradient-btn:not(.wallet-connected) button:hover {
+    background: hsl(var(--glow-green-start)) !important;
+    transform: translateY(-1px);
+  }
+
+  /* Keep original styling when connected */
+  .wallet-gradient-btn.wallet-connected {
+    background: none;
+    padding: 0;
+  }
+
+  .wallet-gradient-btn.wallet-connected::before {
+    display: none;
+  }
+
+  .wallet-gradient-btn > * {
+    border-radius: 10px;
+  }
+
   /* Text gradients */
   .text-gradient-green {
     background: linear-gradient(135deg, hsl(var(--success)), hsl(var(--glow-green-start)));

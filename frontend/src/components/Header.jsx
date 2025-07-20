@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount } from 'wagmi';
 
 // Simple SVG Icons
 const MenuIcon = ({ className }) => (
@@ -22,15 +23,30 @@ const WalletIcon = ({ className }) => (
 );
 
 const navigation = [
-  { name: "How it Works", href: "#" },
-  { name: "Find Talent", href: "#" },
-  { name: "Browse Jobs", href: "#" },
-  { name: "About", href: "/about" },
-  { name: "Dashboard", href: "/dashboard" }
+  { name: "How it Works", href: "#how-it-works", scrollTo: true },
+  { name: "Find Talent", href: "#cta-section", scrollTo: true },
+  { name: "Browse Talent", href: "#cta-section", scrollTo: true },
+  { name: "About", href: "/about", scrollTo: false },
+  { name: "Dashboard", href: "/dashboard", scrollTo: false }
 ];
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isConnected } = useAccount();
+
+  const handleNavClick = (e, item) => {
+    if (item.scrollTo) {
+      e.preventDefault();
+      const element = document.querySelector(item.href);
+      if (element) {
+        element.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+      setMobileMenuOpen(false);
+    }
+  };
 
   return (
     <header className="fixed top-0 w-full bg-background/80 backdrop-blur-lg border-b border-border/50 z-50">
@@ -49,7 +65,8 @@ export default function Header() {
               <a
                 key={item.name}
                 href={item.href}
-                className="text-muted-foreground hover:text-foreground transition-colors duration-200"
+                onClick={(e) => handleNavClick(e, item)}
+                className="text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer"
               >
                 {item.name}
               </a>
@@ -58,10 +75,7 @@ export default function Header() {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-4">
-            <button className="text-muted-foreground hover:text-foreground transition-colors">
-              Sign In
-            </button>
-            <div className="wallet-gradient-btn">
+            <div className={`wallet-gradient-btn ${isConnected ? 'wallet-connected' : ''}`}>
               <ConnectButton showBalance={false} />
             </div>
           </div>
@@ -85,17 +99,14 @@ export default function Header() {
                 <a
                   key={item.name}
                   href={item.href}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  onClick={(e) => handleNavClick(e, item)}
                 >
                   {item.name}
                 </a>
               ))}
               <div className="flex flex-col gap-3 pt-4 border-t border-border/50">
-                <button className="text-left text-muted-foreground hover:text-foreground transition-colors">
-                  Sign In
-                </button>
-                <div className="wallet-gradient-btn">
+                <div className={`wallet-gradient-btn ${isConnected ? 'wallet-connected' : ''}`}>
                   <ConnectButton showBalance={false} />
                 </div>
               </div>

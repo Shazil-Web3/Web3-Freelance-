@@ -116,21 +116,9 @@ const ReviewsSection = () => {
                 </p>
 
                 {/* Author */}
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-success/20 to-accent/20">
-                    <div
-                      className="w-full h-full bg-cover bg-center"
-                      style={{
-                        backgroundImage: `url("https://via.placeholder.com/50x50")`,
-                        backgroundPosition: `${col * -100}% ${row * -100}%`,
-                        transform: `scale(3) translate(${col * 33.33}%, ${row * 33.33}%)`
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <div className="font-semibold">{review.name}</div>
-                    <div className="text-sm text-muted-foreground">{review.role}</div>
-                  </div>
+                <div>
+                  <div className="font-semibold">{review.name}</div>
+                  <div className="text-sm text-muted-foreground">{review.role}</div>
                 </div>
               </div>
             );

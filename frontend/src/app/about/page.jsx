@@ -48,12 +48,12 @@ const About = () => {
 
       <main className="pt-20">
         {/* Hero Section */}
-        <section className="py-24 relative overflow-hidden w-full max-w-full">
-          <div className="absolute inset-0 bg-gradient-to-br from-success/18 via-background to-accent/18" />
-          <div className="absolute -top-24 -left-72 w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.22)_0%,_transparent_70%)]" />
-          <div className="absolute top-1/2 right-[-20rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
+        <section className="py-16 px-12 lg:px-28 relative overflow-hidden w-full">
+          <div className="absolute inset-0 bg-gradient-to-br from-success/25 via-background to-accent/25" />
+          <div className="absolute -top-32 -left-80 w-[40rem] h-[40rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.28)_0%,_transparent_70%)]" />
+          <div className="absolute top-1/2 right-[-25rem] w-[40rem] h-[40rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.24)_0%,_transparent_70%)] -translate-y-1/2" />
 
-          <div className="container mx-auto px-8 lg:px-12 relative z-10">
+          <div className="container mx-auto relative z-10">
             <div className="max-w-4xl mx-auto text-center">
               <h1 className="text-5xl lg:text-7xl font-bold mb-8">
                 About <span className="text-gradient-green">Leavon</span>
@@ -67,12 +67,12 @@ const About = () => {
         </section>
 
         {/* Mission Section */}
-        <section className="py-20 relative overflow-hidden w-full max-w-full">
+        <section className="py-16 px-12 lg:px-28 relative overflow-hidden w-full">
           {/* Gradient orbs for Mission section */}
-          <div className="absolute top-[-8rem] left-[-12rem] w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.16)_0%,_transparent_70%)]" />
-          <div className="absolute bottom-[-6rem] right-[-10rem] w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)]" />
-          <div className="container mx-auto px-8 lg:px-12">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="absolute top-[-8rem] left-[-12rem] w-[24rem] h-[24rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.22)_0%,_transparent_70%)]" />
+          <div className="absolute bottom-[-6rem] right-[-10rem] w-[22rem] h-[22rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.20)_0%,_transparent_70%)]" />
+          <div className="container mx-auto">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
               <div>
                 <h2 className="text-4xl font-bold mb-6">
                   Our <span className="text-gradient-orange">Mission</span>
@@ -88,15 +88,15 @@ const About = () => {
                   and project milestone verification.
                 </p>
               </div>
-              <div className="space-y-6">
-                <div className="card-floating p-6">
+              <div className="space-y-4">
+                <div className="card-floating p-4">
                   <ShieldIcon className="w-8 h-8 text-success mb-4" />
                   <h3 className="text-xl font-semibold mb-2">Secure Payments</h3>
                   <p className="text-muted-foreground">
                     Smart contract escrow ensures secure, automated payments upon milestone completion.
                   </p>
                 </div>
-                <div className="card-floating p-6">
+                <div className="card-floating p-4">
                   <GlobeIcon className="w-8 h-8 text-accent mb-4" />
                   <h3 className="text-xl font-semibold mb-2">Global Access</h3>
                   <p className="text-muted-foreground">
@@ -109,12 +109,12 @@ const About = () => {
         </section>
 
         {/* Values Section */}
-        <section className="py-20 relative overflow-hidden w-full max-w-full">
+        <section className="py-16 px-12 lg:px-28 relative overflow-hidden w-full">
           {/* Gradient orbs for Values section */}
-          <div className="absolute top-1/2 left-[-14rem] w-[22rem] h-[22rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
-          <div className="absolute bottom-[-8rem] right-[-12rem] w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.16)_0%,_transparent_70%)]" />
-          <div className="container mx-auto px-8 lg:px-12">
-            <div className="text-center mb-16">
+          <div className="absolute top-1/2 left-[-14rem] w-[26rem] h-[26rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.24)_0%,_transparent_70%)] -translate-y-1/2" />
+          <div className="absolute bottom-[-8rem] right-[-12rem] w-[24rem] h-[24rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.22)_0%,_transparent_70%)]" />
+          <div className="container mx-auto">
+            <div className="text-center mb-12">
               <h2 className="text-4xl font-bold mb-6">
                 Our <span className="text-gradient-green">Values</span>
               </h2>
@@ -122,22 +122,22 @@ const About = () => {
                 These core principles guide everything we do at Leavon
               </p>
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <div className="card-floating p-8 text-center">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="card-floating p-6 text-center">
                 <UsersIcon className="w-12 h-12 text-success mx-auto mb-4" />
                 <h3 className="text-xl font-semibold mb-3">Community First</h3>
                 <p className="text-muted-foreground">
                   Building a supportive ecosystem where both clients and freelancers thrive together.
                 </p>
               </div>
-              <div className="card-floating p-8 text-center">
+              <div className="card-floating p-6 text-center">
                 <CheckCircleIcon className="w-12 h-12 text-accent mx-auto mb-4" />
                 <h3 className="text-xl font-semibold mb-3">Transparency</h3>
                 <p className="text-muted-foreground">
                   Every transaction, milestone, and payment is recorded on-chain for complete visibility.
                 </p>
               </div>
-              <div className="card-floating p-8 text-center">
+              <div className="card-floating p-6 text-center">
                 <ZapIcon className="w-12 h-12 text-success mx-auto mb-4" />
                 <h3 className="text-xl font-semibold mb-3">Innovation</h3>
                 <p className="text-muted-foreground">
@@ -149,19 +149,19 @@ const About = () => {
         </section>
 
         {/* Stats Section */}
-        <section className="py-20 relative overflow-hidden w-full max-w-full">
+        <section className="py-16 px-12 lg:px-28 relative overflow-hidden w-full">
           {/* Gradient orbs for Stats section */}
-          <div className="absolute top-[-6rem] left-1/3 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.14)_0%,_transparent_70%)]" />
-          <div className="absolute bottom-[-10rem] right-[-14rem] w-[22rem] h-[22rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.18)_0%,_transparent_70%)]" />
-          <div className="container mx-auto px-8 lg:px-12">
-            <div className="card-floating p-12">
-              <div className="text-center mb-12">
+          <div className="absolute top-[-6rem] left-1/3 w-[22rem] h-[22rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.20)_0%,_transparent_70%)]" />
+          <div className="absolute bottom-[-10rem] right-[-14rem] w-[26rem] h-[26rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.24)_0%,_transparent_70%)]" />
+          <div className="container mx-auto">
+            <div className="card-floating p-10">
+              <div className="text-center mb-10">
                 <h2 className="text-4xl font-bold mb-4">
                   Leavon by the <span className="text-gradient-orange">Numbers</span>
                 </h2>
                 <p className="text-xl text-muted-foreground">Our impact on the Web3 freelance ecosystem</p>
               </div>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="text-center">
                   <div className="text-4xl font-bold text-gradient-green mb-2">10,000+</div>
                   <div className="text-muted-foreground">Active Freelancers</div>
@@ -184,12 +184,12 @@ const About = () => {
         </section>
 
         {/* Team Section */}
-        <section className="py-20 relative overflow-hidden w-full max-w-full">
+        <section className="py-16 px-12 lg:px-28 relative overflow-hidden w-full">
           {/* Gradient orbs for Team section */}
-          <div className="absolute top-0 left-1/4 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.16)_0%,_transparent_70%)]" />
-          <div className="absolute bottom-[-8rem] right-[-10rem] w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)]" />
-          <div className="container mx-auto px-8 lg:px-12">
-            <div className="text-center mb-16">
+          <div className="absolute top-0 left-1/4 w-[22rem] h-[22rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.22)_0%,_transparent_70%)]" />
+          <div className="absolute bottom-[-8rem] right-[-10rem] w-[24rem] h-[24rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.22)_0%,_transparent_70%)]" />
+          <div className="container mx-auto">
+            <div className="text-center mb-12">
               <h2 className="text-4xl font-bold mb-6">
                 Meet Our <span className="text-gradient-green">Team</span>
               </h2>
@@ -198,7 +198,7 @@ const About = () => {
               </p>
             </div>
             <div className="max-w-4xl mx-auto text-center">
-              <div className="card-floating p-12">
+              <div className="card-floating p-10">
                 <TrendingUpIcon className="w-16 h-16 text-accent mx-auto mb-6" />
                 <h3 className="text-2xl font-bold mb-4">Building the Future</h3>
                 <p className="text-lg text-muted-foreground leading-relaxed">
