@@ -1,8 +1,16 @@
 const Application = require('../models/Application');
 const Job = require('../models/Job');
 const User = require('../models/User');
+const { ethers } = require('ethers');
 
-// Apply to a job
+// Helper: Connect to contract (stub, fill in with your contract ABI/address/provider)
+const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
+const CONTRACT_ABI = require('../config/constants').CONTRACT_ABI;
+const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet);
+
+// Apply to a job (calls contract)
 exports.applyToJob = async (req, res) => {
   try {
     const { jobId, proposal, duration, fee } = req.body;
@@ -10,8 +18,11 @@ exports.applyToJob = async (req, res) => {
     // Prevent duplicate applications
     const exists = await Application.findOne({ job: jobId, freelancer });
     if (exists) return res.status(400).json({ message: 'Already applied' });
-    const app = await Application.create({ job: jobId, freelancer, proposal, duration, fee });
-    res.status(201).json(app);
+    // Call smart contract to register application
+    const tx = await contract.applyToProject(jobId, proposal, ethers.utils.parseEther(fee.toString()));
+    const receipt = await tx.wait();
+    const app = await Application.create({ job: jobId, freelancer, proposal, duration, fee, status: 'pending' });
+    res.status(201).json({ app, txHash: receipt.transactionHash });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -28,7 +39,7 @@ exports.listForJob = async (req, res) => {
   }
 };
 
-// List applications by freelancer
+// List applications by freelancer (role-based)
 exports.listForFreelancer = async (req, res) => {
   try {
     const freelancer = req.user.id;
@@ -71,6 +82,21 @@ exports.withdraw = async (req, res) => {
     app.status = 'withdrawn';
     await app.save();
     res.json(app);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Applied Jobs for Freelancer (dashboard)
+exports.appliedJobs = async (req, res) => {
+  try {
+    const freelancer = req.user.id;
+    const apps = await Application.find({ freelancer }).populate('job');
+    const appliedJobs = apps.map(app => ({
+      job: app.job,
+      status: app.status
+    }));
+    res.json(appliedJobs);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

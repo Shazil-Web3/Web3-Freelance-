@@ -5,7 +5,11 @@ const ipfs = create({ url: 'https://ipfs.infura.io:5001/api/v0' });
 
 async function uploadToIPFS(fileBuffer) {
   const { cid } = await ipfs.add(fileBuffer);
-  return `https://ipfs.io/ipfs/${cid.toString()}`;
+  return cid.toString(); // Return only the hash for smart contract
 }
 
-module.exports = { uploadToIPFS }; 
+function getIpfsUrl(cid) {
+  return `https://ipfs.io/ipfs/${cid}`;
+}
+
+module.exports = { uploadToIPFS, getIpfsUrl }; 

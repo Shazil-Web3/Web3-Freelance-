@@ -2,20 +2,38 @@ const Job = require('../models/Job');
 const Application = require('../models/Application');
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
+const { uploadToIPFS } = require('../utils/ipfs');
+const { ethers } = require('ethers');
 
-// Create a new job
+// Helper: Connect to contract (stub, fill in with your contract ABI/address/provider)
+const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
+const CONTRACT_ABI = require('../config/constants').CONTRACT_ABI;
+const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet);
+
+// Create a new job (with IPFS and contract call)
 exports.createJob = async (req, res) => {
   try {
     const { title, description, budget, category, milestones, deadline } = req.body;
     const client = req.user.id;
+    // Upload description to IPFS
+    const ipfsHash = await uploadToIPFS(Buffer.from(description));
+    // Call smart contract to register job
+    // (You may want to encode milestones, deadline, etc. as needed)
+    const tx = await contract.createJob(title, ipfsHash, ethers.utils.parseEther(budget.toString()), deadline);
+    const receipt = await tx.wait();
+    // Save job in DB
     const job = await Job.create({
       client,
       title,
-      description,
+      description, // Optionally store plaintext for search
+      ipfsHash,
       budget,
       category,
       milestones,
-      deadline
+      deadline,
+      contractTxHash: receipt.transactionHash
     });
     res.status(201).json(job);
   } catch (err) {
@@ -23,18 +41,29 @@ exports.createJob = async (req, res) => {
   }
 };
 
-// List jobs with optional filters
+// List jobs with role-based filters
 exports.listJobs = async (req, res) => {
   try {
-    const { category, minBudget, maxBudget, status } = req.query;
+    const { client, freelancer, status } = req.query;
     const filter = {};
-    if (category) filter.category = category;
+    if (client) filter.client = client;
+    if (freelancer) filter.freelancer = freelancer;
     if (status) filter.status = status;
-    if (minBudget || maxBudget) filter.budget = {};
-    if (minBudget) filter.budget.$gte = Number(minBudget);
-    if (maxBudget) filter.budget.$lte = Number(maxBudget);
     const jobs = await Job.find(filter).populate('client freelancer');
     res.json(jobs);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// People Hired: list freelancers hired by a client
+exports.peopleHired = async (req, res) => {
+  try {
+    const { client } = req.query;
+    if (!client) return res.status(400).json({ message: 'Client wallet required' });
+    const jobs = await Job.find({ client, freelancer: { $ne: null } }).populate('freelancer');
+    const freelancers = jobs.map(j => j.freelancer).filter(Boolean);
+    res.json(freelancers);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -90,6 +119,51 @@ exports.updateJobStatus = async (req, res) => {
     job.status = req.body.status;
     await job.save();
     res.json(job);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Ongoing Projects for Client
+exports.ongoingProjectsClient = async (req, res) => {
+  try {
+    const { client } = req.query;
+    if (!client) return res.status(400).json({ message: 'Client wallet required' });
+    const jobs = await Job.find({ client, status: { $in: ['assigned', 'in_progress'] } }).populate('freelancer');
+    res.json(jobs);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+// Completed Projects for Client
+exports.completedProjectsClient = async (req, res) => {
+  try {
+    const { client } = req.query;
+    if (!client) return res.status(400).json({ message: 'Client wallet required' });
+    const jobs = await Job.find({ client, status: 'completed' }).populate('freelancer');
+    res.json(jobs);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+// Ongoing Projects for Freelancer
+exports.ongoingProjectsFreelancer = async (req, res) => {
+  try {
+    const { freelancer } = req.query;
+    if (!freelancer) return res.status(400).json({ message: 'Freelancer wallet required' });
+    const jobs = await Job.find({ freelancer, status: { $in: ['assigned', 'in_progress'] } }).populate('client');
+    res.json(jobs);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+// Completed Projects for Freelancer
+exports.completedProjectsFreelancer = async (req, res) => {
+  try {
+    const { freelancer } = req.query;
+    if (!freelancer) return res.status(400).json({ message: 'Freelancer wallet required' });
+    const jobs = await Job.find({ freelancer, status: 'completed' }).populate('client');
+    res.json(jobs);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

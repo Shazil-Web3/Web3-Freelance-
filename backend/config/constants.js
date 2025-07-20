@@ -11,4 +11,5 @@ module.exports = {
     DISPUTED: 'disputed',
     CANCELLED: 'cancelled',
   },
+  CONTRACT_ABI: [], // TODO: Replace with your contract ABI
 }; 

@@ -20,6 +20,7 @@ const jobSchema = new mongoose.Schema({
   status: { type: String, enum: ['open', 'assigned', 'in_progress', 'submitted', 'completed', 'disputed', 'cancelled'], default: 'open' },
   contractTxHash: { type: String },
   escrowStatus: { type: String, enum: ['unfunded', 'funded', 'released'], default: 'unfunded' },
+  ipfsHash: { type: String }, // IPFS hash for job description
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

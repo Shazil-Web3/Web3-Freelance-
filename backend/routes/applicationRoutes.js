@@ -13,5 +13,7 @@ router.get('/freelancer', authenticateJWT, applicationController.listForFreelanc
 router.patch('/:id/status', authenticateJWT, applicationController.updateStatus);
 // Withdraw application
 router.patch('/:id/withdraw', authenticateJWT, applicationController.withdraw);
+// Applied Jobs for Freelancer (dashboard)
+router.get('/applied', authenticateJWT, applicationController.appliedJobs);
 
 module.exports = router; 
