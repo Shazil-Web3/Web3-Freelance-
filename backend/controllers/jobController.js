@@ -3,14 +3,16 @@ const Application = require('../models/Application');
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const { uploadToIPFS } = require('../utils/ipfs');
-const { ethers } = require('ethers');
+// Update ethers import for v6
+const { JsonRpcProvider, Wallet, Contract, parseEther } = require('ethers');
 
-// Helper: Connect to contract (stub, fill in with your contract ABI/address/provider)
+// Helper: Connect to contract (read-only, no private key)
 const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
 const CONTRACT_ABI = require('../config/constants').CONTRACT_ABI;
-const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
-const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet);
+// Use Sepolia default RPC (public endpoint)
+const sepoliaDefault = 'https://rpc.ankr.com/eth_sepolia/6058e85189582de0fc7676b117ba4e4223a386651c25edfedd4d3822e240336f';
+const provider = new JsonRpcProvider(sepoliaDefault);
+const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
 
 // Create a new job (with IPFS and contract call)
 exports.createJob = async (req, res) => {
@@ -21,7 +23,7 @@ exports.createJob = async (req, res) => {
     const ipfsHash = await uploadToIPFS(Buffer.from(description));
     // Call smart contract to register job
     // (You may want to encode milestones, deadline, etc. as needed)
-    const tx = await contract.createJob(title, ipfsHash, ethers.utils.parseEther(budget.toString()), deadline);
+    const tx = await contract.createJob(title, ipfsHash, parseEther(budget.toString()), deadline);
     const receipt = await tx.wait();
     // Save job in DB
     const job = await Job.create({

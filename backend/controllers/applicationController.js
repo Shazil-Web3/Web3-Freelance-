@@ -1,14 +1,14 @@
 const Application = require('../models/Application');
 const Job = require('../models/Job');
 const User = require('../models/User');
-const { ethers } = require('ethers');
+const { Contract, JsonRpcProvider, parseEther } = require('ethers');
 
-// Helper: Connect to contract (stub, fill in with your contract ABI/address/provider)
+// Helper: Connect to contract (read-only, no private key)
 const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
 const CONTRACT_ABI = require('../config/constants').CONTRACT_ABI;
-const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
-const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet);
+const sepoliaDefault = 'https://rpc.ankr.com/eth_sepolia/6058e85189582de0fc7676b117ba4e4223a386651c25edfedd4d3822e240336f';
+const provider = new JsonRpcProvider(sepoliaDefault);
+const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
 
 // Apply to a job (calls contract)
 exports.applyToJob = async (req, res) => {
@@ -18,11 +18,11 @@ exports.applyToJob = async (req, res) => {
     // Prevent duplicate applications
     const exists = await Application.findOne({ job: jobId, freelancer });
     if (exists) return res.status(400).json({ message: 'Already applied' });
-    // Call smart contract to register application
-    const tx = await contract.applyToProject(jobId, proposal, ethers.utils.parseEther(fee.toString()));
-    const receipt = await tx.wait();
+    // Call smart contract to register application (DISABLED: no private key for write)
+    // const tx = await contract.applyToProject(jobId, proposal, parseEther(fee.toString()));
+    // const receipt = await tx.wait();
     const app = await Application.create({ job: jobId, freelancer, proposal, duration, fee, status: 'pending' });
-    res.status(201).json({ app, txHash: receipt.transactionHash });
+    res.status(201).json({ app /*, txHash: receipt.transactionHash */ });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
