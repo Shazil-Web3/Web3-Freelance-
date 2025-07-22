@@ -41,13 +41,13 @@ const HeroSection = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <a href="/find-jobs" className="btn-primary group">
+            <a href="/post-a-job" className="btn-primary group">
                 Post a Job
                 <ArrowRightIcon className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </a>
               <a href="/apply-for-jobs" className="btn-secondary group">
-                <PlayIcon className="mr-2 h-5 w-5" />
-                Join as Freelancer
+                <ArrowRightIcon className="mr-2 h-5 w-5" />
+                Apply for a Job
               </a>
             </div>
 

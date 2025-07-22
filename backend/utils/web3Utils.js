@@ -2,7 +2,8 @@ const { ethers } = require('ethers');
 
 function verifySignature(address, signature, nonce) {
   const message = `Sign this nonce to authenticate: ${nonce}`;
-  const recovered = ethers.utils.verifyMessage(message, signature);
+  // ethers v6: verifyMessage is a top-level export, not under ethers.utils
+  const recovered = ethers.verifyMessage(message, signature);
   return recovered.toLowerCase() === address.toLowerCase();
 }
 

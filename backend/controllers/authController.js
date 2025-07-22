@@ -26,6 +26,7 @@ exports.verifySignature = async (req, res) => {
   let user = await User.findOne({ walletAddress: wallet.toLowerCase() });
   if (!user) {
     user = await User.create({ walletAddress: wallet.toLowerCase(), userRole: 'client' });
+    console.log(`New user created: wallet=${wallet.toLowerCase()}, id=${user._id}`);
   }
   // Issue JWT
   const token = generateToken({ wallet: user.walletAddress, id: user._id });

@@ -1,12 +1,12 @@
 "use client";
 import { getDefaultWallets, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { WagmiConfig, createConfig } from "wagmi";
-import { mainnet, polygon, optimism, arbitrum } from "wagmi/chains";
+import { mainnet, polygon, optimism, arbitrum, sepolia } from "wagmi/chains";
 import "@rainbow-me/rainbowkit/styles.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 
-const chains = [mainnet, polygon, optimism, arbitrum];
+const chains = [mainnet, polygon, optimism, arbitrum, sepolia];
 
 // IMPORTANT: Replace this with your actual WalletConnect Project ID from https://cloud.walletconnect.com/
 const WALLETCONNECT_PROJECT_ID = "675d5fe0c8f4bada811827dc9e534fb6"; // <-- Replace this!

@@ -9,26 +9,31 @@ const ApplyForJobsPage = () => {
 
       <main className="pt-20 px-12 lg:px-28">
         {/* Hero Section */}
-        <section className="py-16 relative overflow-hidden w-full">
-          {/* Gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-success/10 via-background to-accent/10" />
+        <section className="py-20 relative overflow-hidden w-full">
+          {/* Enhanced Gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-success/20 via-background to-accent/20" />
 
           <div className="container mx-auto relative z-10">
-            <div className="text-center mb-12">
+            <div className="text-center mb-14">
               <h1 className="text-5xl lg:text-6xl font-bold mb-4">
-                Join as a <span className="text-gradient-green">Freelancer</span>
+                Apply for a <span className="text-gradient-green">Job</span>
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Apply to exciting Web3 projects and build your freelance career.
+                Discover exciting Web3 projects and take the next step in your freelance career.
               </p>
             </div>
 
-            {/* Application Guidelines Placeholder */}
-            <div className="grid gap-8">
-              <div className="card-floating p-6">
-                <h2 className="text-2xl font-bold">How to Apply</h2>
-                <p className="text-muted-foreground">Register as a freelancer and start applying for jobs that match your skills.</p>
-                <p className="text-muted-foreground">Ensure your profile is complete for the best opportunities.</p>
+            {/* Enhanced Application Guidelines */}
+            <div className="grid gap-8 max-w-2xl mx-auto">
+              <div className="card-floating p-8 bg-white/80 shadow-lg rounded-2xl">
+                <h2 className="text-2xl font-bold mb-2">How to Apply</h2>
+                <ul className="list-disc list-inside text-muted-foreground space-y-2">
+                  <li>Register and complete your freelancer profile.</li>
+                  <li>Browse available jobs that match your skills.</li>
+                  <li>Submit tailored applications to stand out.</li>
+                  <li>Get hired and work securely via smart contracts.</li>
+                </ul>
+                <button className="mt-6 btn-primary w-full py-3 text-lg font-semibold rounded-xl">Browse Jobs</button>
               </div>
             </div>
           </div>
