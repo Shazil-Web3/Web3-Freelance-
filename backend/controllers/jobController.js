@@ -45,7 +45,8 @@ exports.createJob = async (req, res) => {
       budget,
       category,
       milestones,
-      deadline
+      deadline,
+      contractJobId: req.body.contractJobId // Store contract jobId from frontend
     });
     res.status(201).json(job);
   } catch (err) {

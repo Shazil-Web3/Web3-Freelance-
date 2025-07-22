@@ -92,7 +92,7 @@ class JobAsCrewOneContext {
   // Apply to a job (freelancer)
   async applyToProject(jobId, proposal, bidAmount) {
     try {
-      const tx = await this.contract.applyToProject(jobId, proposal, ethers.utils.parseEther(bidAmount.toString()));
+      const tx = await this.contract.applyToProject(jobId, proposal, ethers.parseEther(bidAmount.toString()));
       return await this.#handleTransaction(tx);
     } catch (error) {
       throw new Error(`Failed to apply to project: ${error.message}`);

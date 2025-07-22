@@ -126,6 +126,17 @@ const PostAJobPage = () => {
       const deadlineTimestamp = Math.floor(new Date(form.deadline).getTime() / 1000);
       // Call contract
       const result = await contract.createJob(form.title, milestones, deadlineTimestamp);
+      // Extract contract jobId from the transaction result (if available)
+      let contractJobId = null;
+      if (result && result.transactionHash) {
+        // Try to get jobId from event logs (ethers v6)
+        if (result.events && result.events.length > 0) {
+          const jobCreatedEvent = result.events.find(e => e.event === 'JobCreated');
+          if (jobCreatedEvent && jobCreatedEvent.args && jobCreatedEvent.args.jobId !== undefined) {
+            contractJobId = Number(jobCreatedEvent.args.jobId);
+          }
+        }
+      }
       // Save job to backend
       const jobDescription = milestones.map(m => m.description).join(' | ');
       const backendRes = await fetch(`${BACKEND_URL}/api/jobs`, {
@@ -139,7 +150,8 @@ const PostAJobPage = () => {
           milestones,
           deadline: new Date(form.deadline).toISOString(), // ISO string for backend
           client: user._id,
-          description: jobDescription
+          description: jobDescription,
+          contractJobId // Send contract jobId to backend
         })
       });
       if (!backendRes.ok) {
@@ -353,10 +365,6 @@ const PostAJobPage = () => {
                   <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fade-in">
                     <h2 className="text-2xl font-bold mb-4 text-green-600">Job Created Successfully!</h2>
                     <p className="mb-4">Your job has been posted and escrowed on-chain.</p>
-                    <div className="mb-4 break-all">
-                      <span className="font-semibold">Transaction Hash:</span><br />
-                      <span className="text-xs">{txHash}</span>
-                    </div>
                     <button
                       className="btn-primary w-full py-3 text-lg font-semibold rounded-xl"
                       onClick={() => setShowSuccess(false)}
