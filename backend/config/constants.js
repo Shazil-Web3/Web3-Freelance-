@@ -1,3 +1,5 @@
+const contractArtifact = require('../abi/contract.json');
+
 module.exports = {
   ROLES: {
     CLIENT: 'client',
@@ -11,5 +13,5 @@ module.exports = {
     DISPUTED: 'disputed',
     CANCELLED: 'cancelled',
   },
-  CONTRACT_ABI: [], // TODO: Replace with your contract ABI
+  CONTRACT_ABI: contractArtifact.abi,
 }; 

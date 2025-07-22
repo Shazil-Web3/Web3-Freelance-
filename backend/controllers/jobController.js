@@ -2,7 +2,6 @@ const Job = require('../models/Job');
 const Application = require('../models/Application');
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
-const { uploadToIPFS } = require('../utils/ipfs');
 // Update ethers import for v6
 const { JsonRpcProvider, Wallet, Contract, parseEther } = require('ethers');
 
@@ -17,25 +16,36 @@ const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
 // Create a new job (with IPFS and contract call)
 exports.createJob = async (req, res) => {
   try {
-    const { title, description, budget, category, milestones, deadline } = req.body;
+    let { title, description, budget, category, milestones, deadline } = req.body;
     const client = req.user.id;
-    // Upload description to IPFS
-    const ipfsHash = await uploadToIPFS(Buffer.from(description));
-    // Call smart contract to register job
-    // (You may want to encode milestones, deadline, etc. as needed)
-    const tx = await contract.createJob(title, ipfsHash, parseEther(budget.toString()), deadline);
-    const receipt = await tx.wait();
-    // Save job in DB
+    // Fallbacks for missing fields
+    if (!description) {
+      // If no description, concatenate milestone descriptions
+      if (Array.isArray(milestones) && milestones.length > 0) {
+        description = milestones.map(m => m.description || m.title || '').join(' | ');
+      } else {
+        description = '';
+      }
+    }
+    if (!Array.isArray(milestones)) milestones = [];
+    if (!budget) {
+      // If no budget, sum milestone amounts
+      budget = milestones.reduce((sum, m) => sum + Number(m.amount || 0), 0);
+    }
+    // Remove: Upload description to IPFS
+    // Remove: const ipfsHash = await uploadToIPFS(Buffer.from(description));
+    // Remove: Call smart contract to register job (leave as comment if needed)
+    // const tx = await contract.createJob(title, ipfsHash, parseEther(budget.toString()), deadline);
+    // const receipt = await tx.wait();
+    // Save job in DB (no ipfsHash)
     const job = await Job.create({
       client,
       title,
-      description, // Optionally store plaintext for search
-      ipfsHash,
+      description, // Store plaintext for search
       budget,
       category,
       milestones,
-      deadline,
-      contractTxHash: receipt.transactionHash
+      deadline
     });
     res.status(201).json(job);
   } catch (err) {
