@@ -16,8 +16,13 @@ const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
 // Create a new job (with IPFS and contract call)
 exports.createJob = async (req, res) => {
   try {
-    let { title, description, budget, category, milestones, deadline } = req.body;
+    let { title, description, budget, category, milestones, deadline, contractJobId } = req.body;
     const client = req.user.id;
+    // Validate contractJobId
+    if (typeof contractJobId === 'undefined' || contractJobId === null || isNaN(Number(contractJobId))) {
+      return res.status(400).json({ message: 'contractJobId is required and must be a number' });
+    }
+    contractJobId = Number(contractJobId);
     // Fallbacks for missing fields
     if (!description) {
       // If no description, concatenate milestone descriptions
@@ -46,7 +51,7 @@ exports.createJob = async (req, res) => {
       category,
       milestones,
       deadline,
-      contractJobId: req.body.contractJobId // Store contract jobId from frontend
+      contractJobId // Store contract jobId from frontend
     });
     res.status(201).json(job);
   } catch (err) {
