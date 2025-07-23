@@ -19,7 +19,7 @@ import {
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 const Dashboard = () => {
-  const { user, token, loading } = useWalletAuth();
+  const { user, token, loading: authLoading } = useWalletAuth();
   const [userType, setUserType] = useState('freelancer');
   const [dashboardData, setDashboardData] = useState(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
@@ -28,11 +28,15 @@ const Dashboard = () => {
 
   // DEBUG LOGGING
   if (typeof window !== 'undefined') {
-    console.log('DASHBOARD DEBUG:', { user, token, loading });
+    console.log('DASHBOARD DEBUG:', { user, token, authLoading }); // Fix: use authLoading instead of loading
+    console.log('DASHBOARD: user=', user);
+    console.log('DASHBOARD: token=', token);
+    console.log('DASHBOARD: loading=', authLoading); // Fix: use authLoading instead of loading
   }
 
   useEffect(() => {
     if (user && user.walletAddress && token) {
+      console.log('DASHBOARD: Calling fetchDashboard');
       fetchDashboard();
     }
     // eslint-disable-next-line
@@ -47,8 +51,12 @@ const Dashboard = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      if (!res.ok) throw new Error('Failed to fetch dashboard');
+      if (!res.ok) {
+        console.error('DASHBOARD: fetchDashboard failed with status', res.status);
+        throw new Error('Failed to fetch dashboard');
+      }
       const data = await res.json();
+      console.log('DASHBOARD: fetchDashboard success', data);
       setDashboardData(data);
     } catch (err) {
       setError(err.message || 'Failed to load dashboard');
@@ -140,12 +148,66 @@ const Dashboard = () => {
     return 4.9;
   }
 
-  if (loading || dashboardLoading) {
-    return <div className="min-h-screen flex items-center justify-center bg-background"><span>Loading dashboard...</span></div>;
+  if (authLoading || dashboardLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-20 flex items-center justify-center">
+          <span className="text-lg text-muted-foreground">Loading dashboard...</span>
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   if (!user || !token) {
-    return <div className="min-h-screen flex items-center justify-center bg-background"><span>Please connect your wallet to view dashboard.</span></div>;
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-20">
+          <section className="py-12 px-12 lg:px-28 relative overflow-hidden w-full">
+            <div className="absolute inset-0 bg-gradient-to-br from-success/18 via-background to-accent/18" />
+            <div className="absolute top-1/2 left-[-10rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.22)_0%,_transparent_70%)] -translate-y-1/2" />
+            <div className="absolute top-1/2 right-[-10rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
+            <div className="container mx-auto relative z-10">
+              <div className="text-center max-w-2xl mx-auto">
+                <h1 className="text-4xl lg:text-5xl font-bold mb-4">
+                  Welcome to Your <span className="text-gradient-green">Web3 Dashboard</span>
+                </h1>
+                <p className="text-xl text-muted-foreground mb-8">
+                  Connect your wallet to access your personalized dashboard and manage your freelance activities.
+                </p>
+                <div className="card-floating p-8 bg-white/80 shadow-lg rounded-2xl">
+                  <h2 className="text-2xl font-bold mb-4">What you can do:</h2>
+                  <ul className="text-left space-y-4 mb-6">
+                    <li className="flex items-center gap-3">
+                      <Briefcase className="w-5 h-5 text-success" />
+                      <span>Track your ongoing projects and milestones</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <DollarSign className="w-5 h-5 text-success" />
+                      <span>Manage payments and view earnings</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <Users className="w-5 h-5 text-success" />
+                      <span>Connect with clients and freelancers</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <Star className="w-5 h-5 text-success" />
+                      <span>View your reputation and reviews</span>
+                    </li>
+                  </ul>
+                  <p className="text-muted-foreground text-sm mb-6">
+                    Click the "Connect Wallet" button in the header to get started
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   if (error) {
