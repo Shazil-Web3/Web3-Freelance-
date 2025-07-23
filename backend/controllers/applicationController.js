@@ -10,6 +10,56 @@ const sepoliaDefault = 'https://rpc.ankr.com/eth_sepolia/6058e85189582de0fc7676b
 const provider = new JsonRpcProvider(sepoliaDefault);
 const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
 
+// Create application (POST /api/applications) - for frontend compatibility
+exports.createApplication = async (req, res) => {
+  try {
+    const { job, freelancer, proposal, fee, status } = req.body;
+    
+    // Validate the job exists
+    const jobDoc = await Job.findById(job);
+    if (!jobDoc) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+    
+    // Prevent duplicate applications
+    const exists = await Application.findOne({ job, freelancer });
+    if (exists) {
+      return res.status(400).json({ message: 'Already applied to this job' });
+    }
+    
+    const application = await Application.create({
+      job,
+      freelancer,
+      proposal,
+      fee,
+      status: status || 'pending'
+    });
+    
+    res.status(201).json(application);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get applications (GET /api/applications) - supports query parameters
+exports.getApplications = async (req, res) => {
+  try {
+    const { freelancer, job } = req.query;
+    const filter = {};
+    
+    if (freelancer) filter.freelancer = freelancer;
+    if (job) filter.job = job;
+    
+    const applications = await Application.find(filter)
+      .populate('job')
+      .populate('freelancer');
+      
+    res.json(applications);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Apply to a job (calls contract)
 exports.applyToJob = async (req, res) => {
   try {

@@ -5,6 +5,18 @@ import { Footer } from '@/components/Footer';
 import JobAsCrewOneContext from '@/context/Rcontext';
 import { useWalletAuth } from '@/components/WalletAuthProvider';
 import DeadlineChecker from '@/components/DeadlineChecker';
+import { 
+  FaBriefcase, 
+  FaClock, 
+  FaUser, 
+  FaEthereum, 
+  FaTasks, 
+  FaCalendarAlt,
+  FaCheckCircle,
+  FaPaperPlane,
+  FaSpinner,
+  FaExclamationTriangle
+} from 'react-icons/fa';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || 'YOUR_CONTRACT_ADDRESS_HERE';
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
@@ -31,6 +43,7 @@ const ApplyForJobsPage = () => {
   const [applyLoading, setApplyLoading] = useState(false);
   const [applySuccess, setApplySuccess] = useState(false);
   const [applyError, setApplyError] = useState('');
+  const [userApplications, setUserApplications] = useState([]);
 
   useEffect(() => {
     let mounted = true;
@@ -52,7 +65,10 @@ const ApplyForJobsPage = () => {
   }, []);
 
   useEffect(() => {
-    if (user && token) fetchJobs();
+    if (user && token) {
+      fetchJobs();
+      fetchUserApplications();
+    }
   }, [user, token]);
 
   async function fetchJobs() {
@@ -67,6 +83,46 @@ const ApplyForJobsPage = () => {
       setJobsLoading(false);
     }
   }
+
+  async function fetchUserApplications() {
+    if (!user?._id || !token) return;
+    
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/applications?freelancer=${user._id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('Fetch applications response status:', res.status);
+      console.log('Fetch applications response headers:', res.headers);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Backend error response:', errorText);
+        setUserApplications([]);
+        return;
+      }
+      
+      const data = await res.json();
+      setUserApplications(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to fetch user applications:', err);
+      console.error('Error details:', err.message);
+      setUserApplications([]);
+    }
+  }
+
+  // Check if user has already applied to a job
+  const hasUserApplied = (jobId) => {
+    return userApplications.some(app => app.job === jobId || app.job?._id === jobId);
+  };
+
+  // Get application status for a job
+  const getApplicationStatus = (jobId) => {
+    const application = userApplications.find(app => app.job === jobId || app.job?._id === jobId);
+    return application?.status || null;
+  };
 
   const handleApplyClick = (job) => {
     setSelectedJob(job);
@@ -130,7 +186,45 @@ const ApplyForJobsPage = () => {
       // Ensure bidAmount is a string number, not a hex string
       const numericBidAmount = Number(bidAmount);
       if (isNaN(numericBidAmount) || numericBidAmount <= 0) throw new Error('Bid amount must be a valid number.');
+      
+      // Apply on blockchain
       await contract.applyToProject(jobId, proposal, numericBidAmount.toString());
+      
+      // Create application record in database
+      console.log('Creating application with data:', {
+        job: selectedJob._id,
+        freelancer: user._id,
+        proposal: proposal,
+        fee: numericBidAmount,
+        status: 'pending'
+      });
+      
+      const applicationRes = await fetch(`${BACKEND_URL}/api/applications`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          job: selectedJob._id,
+          freelancer: user._id,
+          proposal: proposal,
+          fee: numericBidAmount,
+          status: 'pending'
+        })
+      });
+      
+      console.log('Application creation response status:', applicationRes.status);
+      
+      if (!applicationRes.ok) {
+        const errorText = await applicationRes.text();
+        console.error('Backend error response:', errorText);
+        throw new Error(`Failed to save application: ${applicationRes.status} ${applicationRes.statusText}`);
+      }
+      
+      // Refresh applications list
+      await fetchUserApplications();
+      
       setApplySuccess(true);
       setShowModal(false);
     } catch (err) {
@@ -178,40 +272,127 @@ const ApplyForJobsPage = () => {
             ) : (
               <>
                 <DeadlineChecker />
-              <div className="grid gap-10 md:grid-cols-2 xl:grid-cols-2">
-                {filteredJobs.map(job => (
-                  <div key={job._id} className="card-floating p-8 bg-white/90 rounded-3xl shadow-2xl border border-success/20 flex flex-col gap-6">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                      <div>
-                        <h2 className="text-2xl font-bold mb-1 text-success">{job.title}</h2>
-                        <div className="text-muted-foreground text-base mb-1">Client: <span className="font-semibold">{job.client?.username || job.client?.walletAddress?.slice(0, 8) + '...'}</span></div>
-                        <div className="text-muted-foreground text-base">Deadline: <span className="font-semibold">{formatDeadline(job.deadline)}</span></div>
-                      </div>
-                    </div>
-                    {Array.isArray(job.milestones) && job.milestones.length > 0 && (
-                      <div className="mt-2">
-                        <div className="font-semibold text-lg mb-2 text-gradient-green">Milestones</div>
-                        <ol className="space-y-3">
-                          {job.milestones.map((ms, i) => (
-                            <li key={i} className="flex items-center gap-4 bg-success/5 rounded-xl px-4 py-3">
-                              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-success/80 text-white font-bold text-lg">{i+1}</span>
-                              <div className="flex-1">
-                                <div className="font-medium text-success text-base">{ms.title || ms.description}</div>
-                                <div className="text-accent font-semibold text-lg">{ms.amount} ETH</div>
+              <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2">
+                {filteredJobs.map(job => {
+                  const userApplied = hasUserApplied(job._id);
+                  const applicationStatus = getApplicationStatus(job._id);
+                  const totalBudget = Array.isArray(job.milestones) ? job.milestones.reduce((sum, ms) => sum + parseFloat(ms.amount || 0), 0) : 0;
+                  
+                  return (
+                    <div key={job._id} className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200 hover:border-green-300">
+                      {/* Header with job title and client info */}
+                      <div className="p-6 border-b border-gray-100">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 bg-green-100 rounded-lg">
+                                <FaBriefcase className="text-green-600 text-lg" />
                               </div>
-                            </li>
-                          ))}
-                        </ol>
+                              <h2 className="text-xl font-bold text-gray-800 group-hover:text-green-600 transition-colors">
+                                {job.title}
+                              </h2>
+                            </div>
+                            
+                            <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                              <div className="flex items-center gap-1">
+                                <FaUser className="text-gray-400" />
+                                <span>{job.client?.username || job.client?.walletAddress?.slice(0, 8) + '...'}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <FaCalendarAlt className="text-gray-400" />
+                                <span>{formatDeadline(job.deadline)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Application status indicator */}
+                          {userApplied && (
+                            <div className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                              <FaCheckCircle className="text-xs" />
+                              <span>Applied</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Job description if available */}
+                        {job.description && (
+                          <p className="text-gray-600 text-sm line-clamp-2 mb-3">
+                            {job.description}
+                          </p>
+                        )}
                       </div>
-                    )}
-                    <button
-                      className="btn-primary w-full py-3 text-lg font-semibold rounded-xl mt-4"
-                      onClick={() => handleApplyClick(job)}
-                    >
-                      Apply
-                    </button>
-                  </div>
-                ))}
+                      
+                      {/* Milestones section */}
+                      {Array.isArray(job.milestones) && job.milestones.length > 0 && (
+                        <div className="p-6 border-b border-gray-100">
+                          <div className="flex items-center gap-2 mb-4">
+                            <FaTasks className="text-green-600" />
+                            <span className="font-semibold text-gray-800">Milestones ({job.milestones.length})</span>
+                          </div>
+                          <div className="space-y-3 max-h-48 overflow-y-auto">
+                            {job.milestones.map((ms, i) => (
+                              <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-500 text-white font-bold text-xs flex-shrink-0 mt-0.5">
+                                  {i + 1}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-gray-800 text-sm truncate">
+                                    {ms.title || ms.description}
+                                  </div>
+                                  <div className="flex items-center gap-1 mt-1">
+                                    <FaEthereum className="text-blue-500 text-xs" />
+                                    <span className="text-blue-600 font-semibold text-sm">{ms.amount} ETH</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Footer with budget and apply button */}
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <FaEthereum className="text-blue-500" />
+                            <span className="text-lg font-bold text-gray-800">
+                              {totalBudget.toFixed(4)} ETH
+                            </span>
+                            <span className="text-sm text-gray-500">Total Budget</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-1 text-sm text-gray-500">
+                            <FaClock className="text-xs" />
+                            <span>Posted {new Date(job.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        
+                        {userApplied ? (
+                          <div className="w-full">
+                            <button 
+                              className="w-full py-3 px-4 bg-green-100 text-green-700 rounded-xl font-semibold cursor-not-allowed flex items-center justify-center gap-2"
+                              disabled
+                            >
+                              <FaCheckCircle />
+                              <span>Applied ({applicationStatus || 'pending'})</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleApplyClick(job)}
+                            className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 group"
+                          >
+                            <FaPaperPlane className="group-hover:translate-x-1 transition-transform" />
+                            <span>Apply Now</span>
+                          </button>
+                        )}
+                      </div>
+                      
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 to-blue-500/0 group-hover:from-green-500/5 group-hover:to-blue-500/5 transition-all duration-300 pointer-events-none" />
+                    </div>
+                  );
+                })}
               </div>
               </>
             )}

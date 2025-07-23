@@ -3,7 +3,11 @@ const router = express.Router();
 const applicationController = require('../controllers/applicationController');
 const { authenticateJWT } = require('../middleware/authMiddleware');
 
-// Apply to job
+// Create application (POST /api/applications) - for frontend compatibility
+router.post('/', authenticateJWT, applicationController.createApplication);
+// Get applications by freelancer (GET /api/applications?freelancer=id)
+router.get('/', applicationController.getApplications);
+// Apply to job (legacy route)
 router.post('/apply', authenticateJWT, applicationController.applyToJob);
 // List applications for a job
 router.get('/job/:jobId', applicationController.listForJob);
