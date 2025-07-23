@@ -238,11 +238,24 @@ const ApplyForJobsPage = () => {
   const filteredJobs = jobs.filter(job => job.status === 'open' && (!user || job.client?._id !== user._id));
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Glow orbs with green and orange gradients - similar to post-a-job page */}
+      <div className="absolute top-[-10rem] left-[-16rem] w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.32)_0%,_transparent_70%)] z-0" />
+      <div className="absolute bottom-[-8rem] right-1/3 w-[32rem] h-[32rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.28)_0%,_transparent_70%)] z-0" />
+      <div className="absolute top-[-6rem] right-[-12rem] w-[24rem] h-[24rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.22)_0%,_transparent_70%)] z-0" />
+      <div className="absolute bottom-1/3 left-[-10rem] w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.18)_0%,_transparent_70%)] z-0" />
+      
+      {/* Middle positioned orbs */}
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.15)_0%,_transparent_70%)] z-0" />
+      <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 w-[24rem] h-[24rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.12)_0%,_transparent_70%)] z-0" />
+      <div className="absolute top-2/3 right-1/4 w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] z-0" />
+      <div className="absolute top-1/4 left-1/4 w-[22rem] h-[22rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] z-0" />
+      
       <Header />
       <main className="pt-20 px-12 lg:px-28">
         <section className="py-20 relative overflow-hidden w-full">
-          <div className="absolute inset-0 bg-gradient-to-br from-success/20 via-background to-accent/20" />
+          {/* Remove this smooth gradient background */}
+          {/* <div className="absolute inset-0 bg-gradient-to-br from-success/20 via-background to-accent/20" /> */}
           <div className="container mx-auto relative z-10">
             <div className="text-center mb-14">
               <h1 className="text-5xl lg:text-6xl font-bold mb-4">

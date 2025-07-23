@@ -32,14 +32,15 @@ const CTASection = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
-              <button className="btn-primary text-lg px-10 py-5 group">
+              <a href="/post-a-job" className="btn-primary text-lg px-10 py-5 group">
                 Post Your First Job
                 <ArrowRight className="ml-2 h-6 w-6 group-hover:translate-x-1 transition-transform" />
-              </button>
+              </a>
 
-              <button className="btn-secondary text-lg px-10 py-5">
+              <a href="/apply-for-jobs" className="btn-secondary text-lg px-10 py-5">
                 Browse Freelancers
-              </button>
+                <ArrowRight className="ml-2 h-6 w-6 group-hover:translate-x-1 transition-transform" />
+              </a>
             </div>
 
             {/* Quick stats */}

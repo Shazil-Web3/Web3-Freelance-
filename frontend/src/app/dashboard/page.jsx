@@ -307,31 +307,39 @@ const Dashboard = () => {
               <div className="container mx-auto px-8 lg:px-12">
                 <h2 className="text-2xl font-bold mb-6">Recent Applications</h2>
                 <div className="space-y-4">
-                  {getApplicationsSent().map((app) => (
-                    <div key={app._id} className="card-floating p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold mb-2">{app.job?.title || 'Job'}</h3>
-                          <p className="text-muted-foreground mb-2">Client: {app.job?.client?.username || app.job?.client?.walletAddress?.slice(0, 8) + '...'}</p>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span>Budget: {app.job?.budget ? `$${app.job.budget}` : '-'}</span>
-                            <span>Status: {app.status}</span>
+                  {getApplicationsSent().length > 0 ? (
+                    getApplicationsSent().map((app) => (
+                      <div key={app._id} className="card-floating p-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold mb-2">{app.job?.title || 'Job'}</h3>
+                            <p className="text-muted-foreground mb-2">Client: {app.job?.client?.username || app.job?.client?.walletAddress?.slice(0, 8) + '...'}</p>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span>Budget: {app.job?.budget ? `$${app.job.budget}` : '-'}</span>
+                              <span>Status: {app.status}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                              app.status === 'pending' ? 'bg-accent/10 text-accent' :
+                              app.status === 'accepted' ? 'bg-success/10 text-success' :
+                              app.status === 'rejected' ? 'bg-destructive/10 text-destructive' :
+                              'bg-muted'
+                            }`}>
+                              {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                            </span>
+                            <ChevronRight className="w-5 h-5 text-muted-foreground" />
                           </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            app.status === 'pending' ? 'bg-accent/10 text-accent' :
-                            app.status === 'accepted' ? 'bg-success/10 text-success' :
-                            app.status === 'rejected' ? 'bg-destructive/10 text-destructive' :
-                            'bg-muted'
-                          }`}>
-                            {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
-                          </span>
-                          <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                        </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="card-floating p-6 text-center">
+                      <Briefcase className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+                      <h3 className="text-lg font-medium mb-2">No Applications Yet</h3>
+                      <p className="text-muted-foreground">You haven't applied to any jobs yet. Browse available projects and submit your first proposal.</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </section>
@@ -342,31 +350,39 @@ const Dashboard = () => {
               <div className="container mx-auto px-8 lg:px-12">
                 <h2 className="text-2xl font-bold mb-6">Ongoing Projects</h2>
                 <div className="grid md:grid-cols-2 gap-6">
-                  {getOngoingJobsFreelancer().map((job) => (
-                    <div key={job._id} className="card-floating p-6">
-                      <h3 className="text-lg font-semibold mb-2">{job.title}</h3>
-                      <p className="text-muted-foreground mb-4">Client: {job.client?.username || job.client?.walletAddress?.slice(0, 8) + '...'}</p>
-                      <div className="space-y-3">
-                        <div className="flex justify-between text-sm">
-                          <span>Progress</span>
-                          <span>{job.progress || 'N/A'}%</span>
-                        </div>
-                        <div className="w-full bg-secondary rounded-full h-2">
-                          <div
-                            className="bg-success h-2 rounded-full transition-all"
-                            style={{ width: `${job.progress || 0}%` }}
-                          />
-                        </div>
-                        <div className="flex justify-between items-center pt-2">
-                          <span className="text-sm text-muted-foreground">
-                            <Calendar className="w-4 h-4 inline mr-1" />
-                            Due: {job.deadline ? new Date(job.deadline).toLocaleDateString() : 'N/A'}
-                          </span>
-                          <span className="font-semibold text-gradient-green">${job.budget}</span>
+                  {getOngoingJobsFreelancer().length > 0 ? (
+                    getOngoingJobsFreelancer().map((job) => (
+                      <div key={job._id} className="card-floating p-6">
+                        <h3 className="text-lg font-semibold mb-2">{job.title}</h3>
+                        <p className="text-muted-foreground mb-4">Client: {job.client?.username || job.client?.walletAddress?.slice(0, 8) + '...'}</p>
+                        <div className="space-y-3">
+                          <div className="flex justify-between text-sm">
+                            <span>Progress</span>
+                            <span>{job.progress || 'N/A'}%</span>
+                          </div>
+                          <div className="w-full bg-secondary rounded-full h-2">
+                            <div
+                              className="bg-success h-2 rounded-full transition-all"
+                              style={{ width: `${job.progress || 0}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between items-center pt-2">
+                            <span className="text-sm text-muted-foreground">
+                              <Calendar className="w-4 h-4 inline mr-1" />
+                              Due: {job.deadline ? new Date(job.deadline).toLocaleDateString() : 'N/A'}
+                            </span>
+                            <span className="font-semibold text-gradient-green">${job.budget}</span>
+                          </div>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="card-floating p-6 text-center col-span-2">
+                      <Clock className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+                      <h3 className="text-lg font-medium mb-2">No Ongoing Projects</h3>
+                      <p className="text-muted-foreground">You don't have any active projects at the moment. Check back after your applications are accepted.</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </section>
@@ -374,31 +390,40 @@ const Dashboard = () => {
             <section className="py-8 relative overflow-hidden w-full max-w-full">
               <div className="absolute top-1/2 left-[-6rem] w-[14rem] h-[14rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] -translate-y-1/2" />
               <div className="absolute top-1/2 right-1/4 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
+              <div className="absolute top-1/3 left-1/3 w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.12)_0%,_transparent_70%)] -translate-y-1/2" />
               <div className="container mx-auto px-8 lg:px-12">
                 <h2 className="text-2xl font-bold mb-6">Completed Projects</h2>
                 <div className="space-y-4">
-                  {getCompletedJobsFreelancer().map((job) => (
-                    <div key={job._id} className="card-floating p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold mb-2">{job.title}</h3>
-                          <p className="text-muted-foreground mb-2">Client: {job.client?.username || job.client?.walletAddress?.slice(0, 8) + '...'}</p>
-                          <p className="text-sm text-muted-foreground">Completed: {job.deadline ? new Date(job.deadline).toLocaleDateString() : 'N/A'}</p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xl font-bold text-gradient-green mb-2">${job.budget}</div>
-                          <div className="flex items-center gap-1">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-4 h-4 ${i < getAverageRating() ? 'text-accent fill-current' : 'text-muted-foreground'}`}
-                              />
-                            ))}
+                  {getCompletedJobsFreelancer().length > 0 ? (
+                    getCompletedJobsFreelancer().map((job) => (
+                      <div key={job._id} className="card-floating p-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold mb-2">{job.title}</h3>
+                            <p className="text-muted-foreground mb-2">Client: {job.client?.username || job.client?.walletAddress?.slice(0, 8) + '...'}</p>
+                            <p className="text-sm text-muted-foreground">Completed: {job.deadline ? new Date(job.deadline).toLocaleDateString() : 'N/A'}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xl font-bold text-gradient-green mb-2">${job.budget}</div>
+                            <div className="flex items-center gap-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`w-4 h-4 ${i < getAverageRating() ? 'text-accent fill-current' : 'text-muted-foreground'}`}
+                                />
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="card-floating p-6 text-center">
+                      <CheckCircle className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+                      <h3 className="text-lg font-medium mb-2">No Completed Projects</h3>
+                      <p className="text-muted-foreground">You haven't completed any projects yet. Your finished work will appear here.</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </section>
@@ -504,30 +529,38 @@ const Dashboard = () => {
               <div className="container mx-auto px-8 lg:px-12">
                 <h2 className="text-2xl font-bold mb-6">Recent Hires</h2>
                 <div className="space-y-4">
-                  {getHiredFreelancers().map((job) => (
-                    <div key={job._id} className="card-floating p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold mb-2">{job.freelancer?.username || job.freelancer?.walletAddress?.slice(0, 8) + '...'}</h3>
-                          <p className="text-muted-foreground mb-2">Project: {job.title}</p>
-                          <p className="text-sm text-muted-foreground">Started: {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'N/A'}</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <div className="text-lg font-bold text-gradient-green mb-1">${job.budget}</div>
-                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                              job.status === 'in_progress' ? 'bg-accent/10 text-accent' :
-                              job.status === 'completed' ? 'bg-success/10 text-success' :
-                              'bg-primary/10 text-primary'
-                            }`}>
-                              {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
-                            </span>
+                  {getHiredFreelancers().length > 0 ? (
+                    getHiredFreelancers().map((job) => (
+                      <div key={job._id} className="card-floating p-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold mb-2">{job.freelancer?.username || job.freelancer?.walletAddress?.slice(0, 8) + '...'}</h3>
+                            <p className="text-muted-foreground mb-2">Project: {job.title}</p>
+                            <p className="text-sm text-muted-foreground">Started: {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'N/A'}</p>
                           </div>
-                          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <div className="text-lg font-bold text-gradient-green mb-1">${job.budget}</div>
+                              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                job.status === 'in_progress' ? 'bg-accent/10 text-accent' :
+                                job.status === 'completed' ? 'bg-success/10 text-success' :
+                                'bg-primary/10 text-primary'
+                              }`}>
+                                {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                              </span>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                          </div>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="card-floating p-6 text-center">
+                      <Users className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+                      <h3 className="text-lg font-medium mb-2">No Recent Hires</h3>
+                      <p className="text-muted-foreground">You haven't hired any freelancers yet. Accept proposals to start working with talented professionals.</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </section>
@@ -535,34 +568,43 @@ const Dashboard = () => {
             <section className="py-8 relative overflow-hidden w-full max-w-full">
               <div className="absolute top-1/2 left-1/4 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
               <div className="absolute top-1/2 right-1/4 w-[16rem] h-[16rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.16)_0%,_transparent_70%)] -translate-y-1/2" />
+              <div className="absolute top-1/3 left-1/3 w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.12)_0%,_transparent_70%)] -translate-y-1/2" />
               <div className="container mx-auto px-8 lg:px-12">
                 <h2 className="text-2xl font-bold mb-6">Active Projects</h2>
                 <div className="grid md:grid-cols-2 gap-6">
-                  {getOngoingJobsClient().map((job) => (
-                    <div key={job._id} className="card-floating p-6">
-                      <h3 className="text-lg font-semibold mb-2">{job.title}</h3>
-                      <p className="text-muted-foreground mb-4">Freelancer: {job.freelancer?.username || job.freelancer?.walletAddress?.slice(0, 8) + '...'}</p>
-                      <div className="space-y-3">
-                        <div className="flex justify-between text-sm">
-                          <span>Progress</span>
-                          <span>{job.progress || 'N/A'}%</span>
-                        </div>
-                        <div className="w-full bg-secondary rounded-full h-2">
-                          <div
-                            className="bg-success h-2 rounded-full transition-all"
-                            style={{ width: `${job.progress || 0}%` }}
-                          />
-                        </div>
-                        <div className="flex justify-between items-center pt-2">
-                          <span className="text-sm text-muted-foreground">
-                            <Calendar className="w-4 h-4 inline mr-1" />
-                            Due: {job.deadline ? new Date(job.deadline).toLocaleDateString() : 'N/A'}
-                          </span>
-                          <span className="font-semibold text-gradient-green">${job.budget}</span>
+                  {getOngoingJobsClient().length > 0 ? (
+                    getOngoingJobsClient().map((job) => (
+                      <div key={job._id} className="card-floating p-6">
+                        <h3 className="text-lg font-semibold mb-2">{job.title}</h3>
+                        <p className="text-muted-foreground mb-4">Freelancer: {job.freelancer?.username || job.freelancer?.walletAddress?.slice(0, 8) + '...'}</p>
+                        <div className="space-y-3">
+                          <div className="flex justify-between text-sm">
+                            <span>Progress</span>
+                            <span>{job.progress || 'N/A'}%</span>
+                          </div>
+                          <div className="w-full bg-secondary rounded-full h-2">
+                            <div
+                              className="bg-success h-2 rounded-full transition-all"
+                              style={{ width: `${job.progress || 0}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between items-center pt-2">
+                            <span className="text-sm text-muted-foreground">
+                              <Calendar className="w-4 h-4 inline mr-1" />
+                              Due: {job.deadline ? new Date(job.deadline).toLocaleDateString() : 'N/A'}
+                            </span>
+                            <span className="font-semibold text-gradient-green">${job.budget}</span>
+                          </div>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="card-floating p-6 text-center col-span-2">
+                      <Briefcase className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+                      <h3 className="text-lg font-medium mb-2">No Active Projects</h3>
+                      <p className="text-muted-foreground">You don't have any active projects at the moment. Hire freelancers to start new projects.</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </section>
@@ -570,31 +612,40 @@ const Dashboard = () => {
             <section className="py-8 relative overflow-hidden w-full max-w-full">
               <div className="absolute top-1/2 left-[-6rem] w-[14rem] h-[14rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] -translate-y-1/2" />
               <div className="absolute top-1/2 right-1/4 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
+              <div className="absolute top-1/3 left-1/3 w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.12)_0%,_transparent_70%)] -translate-y-1/2" />
               <div className="container mx-auto px-8 lg:px-12">
                 <h2 className="text-2xl font-bold mb-6">Completed Projects</h2>
                 <div className="space-y-4">
-                  {getCompletedJobsClient().map((job) => (
-                    <div key={job._id} className="card-floating p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold mb-2">{job.title}</h3>
-                          <p className="text-muted-foreground mb-2">Freelancer: {job.freelancer?.username || job.freelancer?.walletAddress?.slice(0, 8) + '...'}</p>
-                          <p className="text-sm text-muted-foreground">Completed: {job.deadline ? new Date(job.deadline).toLocaleDateString() : 'N/A'}</p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xl font-bold text-gradient-green mb-2">${job.budget}</div>
-                          <div className="flex items-center gap-1">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-4 h-4 ${i < getAverageRating() ? 'text-accent fill-current' : 'text-muted-foreground'}`}
-                              />
-                            ))}
+                  {getCompletedJobsClient().length > 0 ? (
+                    getCompletedJobsClient().map((job) => (
+                      <div key={job._id} className="card-floating p-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold mb-2">{job.title}</h3>
+                            <p className="text-muted-foreground mb-2">Freelancer: {job.freelancer?.username || job.freelancer?.walletAddress?.slice(0, 8) + '...'}</p>
+                            <p className="text-sm text-muted-foreground">Completed: {job.deadline ? new Date(job.deadline).toLocaleDateString() : 'N/A'}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xl font-bold text-gradient-green mb-2">${job.budget}</div>
+                            <div className="flex items-center gap-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`w-4 h-4 ${i < getAverageRating() ? 'text-accent fill-current' : 'text-muted-foreground'}`}
+                                />
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="card-floating p-6 text-center">
+                      <CheckCircle className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+                      <h3 className="text-lg font-medium mb-2">No Completed Projects</h3>
+                      <p className="text-muted-foreground">You haven't completed any projects yet. Your finished projects will appear here.</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </section>

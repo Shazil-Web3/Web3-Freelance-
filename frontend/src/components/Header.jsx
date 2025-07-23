@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
 
@@ -33,6 +33,16 @@ const navigation = [
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isConnected } = useAccount();
+  const [walletLoaded, setWalletLoaded] = useState(false);
+
+  useEffect(() => {
+    // Add a small delay to ensure wallet UI is properly loaded
+    const timer = setTimeout(() => {
+      setWalletLoaded(true);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleNavClick = (e, item) => {
     if (item.scrollTo) {
@@ -75,9 +85,13 @@ export default function Header() {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-4">
-            <div className={`wallet-gradient-btn ${isConnected ? 'wallet-connected' : ''}`}>
-              <ConnectButton showBalance={false} />
-            </div>
+            {walletLoaded ? (
+              <div className={`wallet-gradient-btn ${isConnected ? 'wallet-connected' : ''}}`}>
+                <ConnectButton showBalance={false} />
+              </div>
+            ) : (
+              <div className="h-10 w-36 rounded-xl bg-secondary animate-pulse"></div>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -106,9 +120,13 @@ export default function Header() {
                 </a>
               ))}
               <div className="flex flex-col gap-3 pt-4 border-t border-border/50">
-                <div className={`wallet-gradient-btn ${isConnected ? 'wallet-connected' : ''}`}>
-                  <ConnectButton showBalance={false} />
-                </div>
+                {walletLoaded ? (
+                  <div className={`wallet-gradient-btn ${isConnected ? 'wallet-connected' : ''}`}>
+                    <ConnectButton showBalance={false} />
+                  </div>
+                ) : (
+                  <div className="h-10 w-36 rounded-xl bg-secondary animate-pulse"></div>
+                )}
               </div>
             </div>
           </div>

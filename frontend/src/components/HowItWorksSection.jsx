@@ -9,9 +9,11 @@ const FileTextIcon = ({ className }) => (
   </svg>
 );
 
-const UsersIcon = ({ className }) => (
+// New improved icon for Apply section
+const ApplyIcon = ({ className }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11v5m-3-3h6" />
   </svg>
 );
 
@@ -29,7 +31,7 @@ const steps = [
     number: "01"
   },
   {
-    icon: UsersIcon,
+    icon: ApplyIcon, // Changed from UsersIcon to ApplyIcon
     title: "Apply",
     description: "Verified Web3 freelancers submit proposals with portfolios and competitive rates.",
     number: "02"
@@ -92,11 +94,11 @@ const HowItWorksSection = () => {
           })}
         </div>
 
-        {/* CTA */}
+        // CTA
         <div className="text-center mt-16">
-          <button className="btn-primary">
+          <a href="/apply-for-jobs" className="btn-primary">
             Start Your First Project
-          </button>
+          </a>
         </div>
       </div>
     </section>
