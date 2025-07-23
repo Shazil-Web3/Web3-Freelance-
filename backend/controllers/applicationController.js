@@ -15,12 +15,26 @@ exports.applyToJob = async (req, res) => {
   try {
     const { jobId, proposal, duration, fee } = req.body;
     const freelancer = req.user.id;
+    
+    // Validate the job exists and has a valid contractJobId
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+    
+    // Check if the job has a valid contractJobId (required for blockchain interaction)
+    if (typeof job.contractJobId === 'undefined' || job.contractJobId === null || isNaN(Number(job.contractJobId)) || Number(job.contractJobId) < 0) {
+      return res.status(400).json({ message: 'This job cannot be applied to: missing or invalid contract job ID. The job may not have been properly created on-chain.' });
+    }
+    
     // Prevent duplicate applications
     const exists = await Application.findOne({ job: jobId, freelancer });
     if (exists) return res.status(400).json({ message: 'Already applied' });
+    
     // Call smart contract to register application (DISABLED: no private key for write)
-    // const tx = await contract.applyToProject(jobId, proposal, parseEther(fee.toString()));
+    // const tx = await contract.applyToProject(job.contractJobId, proposal, parseEther(fee.toString()));
     // const receipt = await tx.wait();
+    
     const app = await Application.create({ job: jobId, freelancer, proposal, duration, fee, status: 'pending' });
     res.status(201).json({ app /*, txHash: receipt.transactionHash */ });
   } catch (err) {

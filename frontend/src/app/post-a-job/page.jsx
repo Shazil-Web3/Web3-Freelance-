@@ -116,12 +116,56 @@ const PostAJobPage = () => {
         description: m.description,
         amount: m.amount.toString()
       }));
-      const deadlineTimestamp = Math.floor(new Date(form.deadline).getTime() / 1000);
+      // Handle deadline conversion properly - ensure proper timezone handling
+      const now = Date.now();
+      const selectedDeadline = new Date(form.deadline + 'T00:00:00.000Z'); // Ensure UTC interpretation
+      
+      // Ensure the selected deadline is not in the past
+      if (selectedDeadline.getTime() <= now) {
+        setError('Deadline must be in the future.');
+        setLoading(false);
+        return;
+      }
+      
+      // Add time buffer to avoid immediate expiration (set deadline to end of selected day in UTC)
+      const endOfDay = new Date(selectedDeadline);
+      endOfDay.setUTCHours(23, 59, 59, 999); // Set to end of the selected day in UTC
+      
+      const deadlineTimestamp = Math.floor(endOfDay.getTime() / 1000);
+      const currentTimestamp = Math.floor(now / 1000);
+      
+      // Validation: ensure deadline timestamp is reasonable (not too far in future, not in past)
+      const minTimestamp = currentTimestamp;
+      const maxTimestamp = currentTimestamp + (365 * 24 * 60 * 60); // 1 year from now
+      
+      if (deadlineTimestamp < minTimestamp) {
+        setError('Deadline timestamp is in the past. This should not happen.');
+        setLoading(false);
+        return;
+      }
+      
+      if (deadlineTimestamp > maxTimestamp) {
+        setError('Deadline is too far in the future (max 1 year).');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Current time:', new Date(now).toISOString());
+      console.log('Selected deadline:', selectedDeadline.toISOString());
+      console.log('End of day deadline:', endOfDay.toISOString());
+      console.log('Current timestamp (seconds):', currentTimestamp);
+      console.log('Deadline timestamp (seconds):', deadlineTimestamp);
+      console.log('Time difference (seconds):', deadlineTimestamp - currentTimestamp);
+      
+      // Create job on blockchain and get the contract job ID
       const result = await contract.createJob(form.title, milestones, deadlineTimestamp);
-      let contractJobId = result && typeof result.jobId === 'number' ? result.jobId : null;
-      // Ensure contractJobId is a number and not undefined/null
-      if (typeof contractJobId !== 'number' || isNaN(contractJobId)) {
-        setError('Failed to get contract jobId from contract.');
+      
+      // Extract contractJobId from the result
+      let contractJobId = null;
+      if (result && result.success && typeof result.jobId === 'number') {
+        contractJobId = result.jobId;
+      } else {
+        setError('Failed to get contract jobId from blockchain. Transaction may have failed.');
         setLoading(false);
         return;
       }
@@ -296,9 +340,13 @@ const PostAJobPage = () => {
                           name="deadline"
                           value={form.deadline}
                           onChange={handleChange}
+                          min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
                           className="w-full border rounded-lg px-3 py-2"
                           required
                         />
+                        <small className="text-gray-500 text-sm mt-1 block">
+                          Deadline must be at least tomorrow to give freelancers time to apply
+                        </small>
                       </div>
                       <div>
                         <label className="block font-medium mb-1">Milestones</label>

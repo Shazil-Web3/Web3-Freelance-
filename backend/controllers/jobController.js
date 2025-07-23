@@ -18,11 +18,17 @@ exports.createJob = async (req, res) => {
   try {
     let { title, description, budget, category, milestones, deadline, contractJobId } = req.body;
     const client = req.user.id;
-    // Validate contractJobId
-    if (typeof contractJobId === 'undefined' || contractJobId === null || isNaN(Number(contractJobId))) {
-      return res.status(400).json({ message: 'contractJobId is required and must be a number' });
+    // Validate contractJobId - it must be a valid number
+    if (typeof contractJobId === 'undefined' || contractJobId === null || contractJobId === '' || isNaN(Number(contractJobId)) || Number(contractJobId) < 0) {
+      return res.status(400).json({ message: 'contractJobId is required and must be a valid non-negative number' });
     }
     contractJobId = Number(contractJobId);
+    
+    // Check if a job with this contractJobId already exists to prevent duplicates
+    const existingJob = await Job.findOne({ contractJobId });
+    if (existingJob) {
+      return res.status(400).json({ message: `Job with contractJobId ${contractJobId} already exists` });
+    }
     // Fallbacks for missing fields
     if (!description) {
       // If no description, concatenate milestone descriptions
@@ -67,6 +73,10 @@ exports.listJobs = async (req, res) => {
     if (client) filter.client = client;
     if (freelancer) filter.freelancer = freelancer;
     if (status) filter.status = status;
+    
+    // Only return jobs with valid contractJobId (required for blockchain interaction)
+    filter.contractJobId = { $exists: true, $ne: null, $gte: 0 };
+    
     const jobs = await Job.find(filter).populate('client freelancer');
     res.json(jobs);
   } catch (err) {

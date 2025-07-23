@@ -43,14 +43,25 @@ class JobAsCrewOneContext {
 
   // Helper to format milestone array for createJob
   #formatMilestones(milestones) {
+    // Validate that milestones is an array
+    if (!Array.isArray(milestones)) {
+      throw new Error('Milestones must be an array');
+    }
+    
     // ethers v6: use ethers.parseEther
-    return milestones.map(m => ({
-      description: m.description,
-      amount: ethers.parseEther(m.amount.toString()),
-      completed: false,
-      paid: false,
-      workDescription: ''
-    }));
+    return milestones.map(m => {
+      if (!m || typeof m.description !== 'string' || !m.amount) {
+        throw new Error('Each milestone must have a description and amount');
+      }
+      
+      return {
+        description: m.description,
+        amount: ethers.parseEther(m.amount.toString()),
+        completed: false,
+        paid: false,
+        workDescription: ''
+      };
+    });
   }
 
   // Toggle contract pause state (onlyOwner)
@@ -76,15 +87,39 @@ class JobAsCrewOneContext {
   // Create a job with milestones (client)
   async createJob(title, milestones, deadline) {
     try {
-      // Convert milestone amounts to BigInt (wei)
+      console.log('Creating job with title:', title);
+      
+      // STEP 1: Get the current job counter to predict the next job ID
+      const currentJobCounter = await this.readOnlyContract.jobCounter();
+      const predictedJobId = Number(currentJobCounter);
+      console.log('Predicted job ID:', predictedJobId);
+      
+      // STEP 2: Format milestones and calculate total
       const totalAmount = milestones.reduce((sum, m) => sum + Number(m.amount), 0);
       const formattedMilestones = this.#formatMilestones(milestones);
-      // ethers v6: parseEther returns BigInt
+      console.log('Total amount:', totalAmount, 'ETH');
+      console.log('Formatted milestones:', formattedMilestones.length, 'items');
+      
+      // STEP 3: Create the job on the blockchain
       const tx = await this.contract.createJob(title, formattedMilestones, deadline, {
         value: ethers.parseEther(totalAmount.toString())
       });
-      return await this.#handleTransaction(tx);
+      console.log('Transaction submitted:', tx.hash);
+      
+      // STEP 4: Wait for transaction confirmation
+      const receipt = await tx.wait();
+      console.log('Transaction confirmed in block:', receipt.blockNumber);
+      
+      // STEP 5: Return the predicted job ID (this is reliable since job creation increments the counter)
+      return {
+        success: true,
+        transactionHash: receipt.transactionHash,
+        blockNumber: receipt.blockNumber,
+        jobId: predictedJobId
+      };
+      
     } catch (error) {
+      console.error('Job creation failed:', error);
       throw new Error(`Failed to create job: ${error.message}`);
     }
   }
@@ -213,7 +248,7 @@ class JobAsCrewOneContext {
   async remainingFunds(jobId) {
     try {
       const funds = await this.readOnlyContract.remainingFunds(jobId);
-      return ethers.utils.formatEther(funds);
+      return ethers.formatEther(funds);
     } catch (error) {
       throw new Error(`Failed to get remaining funds: ${error.message}`);
     }
@@ -223,30 +258,28 @@ class JobAsCrewOneContext {
   async getJob(jobId) {
     try {
       const job = await this.readOnlyContract.jobs(jobId);
+      
+      // Map status enum values
+      const statusMap = ['Open', 'InProgress', 'Completed', 'Disputed', 'Resolved'];
+      const statusText = statusMap[Number(job.status)] || 'Unknown';
+      
       return {
         client: job.client,
         freelancer: job.freelancer,
         title: job.title,
-        totalAmount: ethers.utils.formatEther(job.totalAmount),
-        paidAmount: ethers.utils.formatEther(job.paidAmount),
-        status: job.status,
-        currentMilestone: job.currentMilestone.toNumber(),
-        resolution: job.resolution,
-        deadline: job.deadline.toNumber(),
+        totalAmount: ethers.formatEther(job.totalAmount),
+        paidAmount: ethers.formatEther(job.paidAmount),
+        status: statusText,
+        statusNumber: Number(job.status),
+        currentMilestone: Number(job.currentMilestone),
+        resolution: Number(job.resolution),
+        deadline: Number(job.deadline),
         disputeReason: job.disputeReason,
-        disputeRaisedAt: job.disputeRaisedAt.toNumber(),
-        milestones: job.milestones.map(m => ({
-          description: m.description,
-          amount: ethers.utils.formatEther(m.amount),
-          completed: m.completed,
-          paid: m.paid,
-          workDescription: m.workDescription
-        })),
-        proposals: job.proposals.map(p => ({
-          freelancer: p.freelancer,
-          proposal: p.proposal,
-          bidAmount: ethers.utils.formatEther(p.bidAmount)
-        }))
+        disputeRaisedAt: Number(job.disputeRaisedAt),
+        // Note: milestones and proposals arrays are not available via the jobs() mapping
+        // They need to be retrieved separately via events or other methods
+        milestones: [],
+        proposals: []
       };
     } catch (error) {
       throw new Error(`Failed to get job details: ${error.message}`);
@@ -274,7 +307,7 @@ class JobAsCrewOneContext {
   // Read-only: Get job counter
   async getJobCounter() {
     try {
-      return (await this.readOnlyContract.jobCounter()).toNumber();
+      return Number(await this.readOnlyContract.jobCounter());
     } catch (error) {
       throw new Error(`Failed to get job counter: ${error.message}`);
     }
@@ -283,7 +316,7 @@ class JobAsCrewOneContext {
   // Read-only: Get commission rate
   async getCommissionRate() {
     try {
-      return (await this.readOnlyContract.commissionRate()).toNumber();
+      return Number(await this.readOnlyContract.commissionRate());
     } catch (error) {
       throw new Error(`Failed to get commission rate: ${error.message}`);
     }
@@ -292,7 +325,7 @@ class JobAsCrewOneContext {
   // Read-only: Get platform fees
   async getPlatformFees() {
     try {
-      return ethers.utils.formatEther(await this.readOnlyContract.platformFees());
+      return ethers.formatEther(await this.readOnlyContract.platformFees());
     } catch (error) {
       throw new Error(`Failed to get platform fees: ${error.message}`);
     }

@@ -4,6 +4,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import JobAsCrewOneContext from '@/context/Rcontext';
 import { useWalletAuth } from '@/components/WalletAuthProvider';
+import DeadlineChecker from '@/components/DeadlineChecker';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || 'YOUR_CONTRACT_ADDRESS_HERE';
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
@@ -83,16 +84,52 @@ const ApplyForJobsPage = () => {
       if (!contract) throw new Error('Contract not ready.');
       if (!user || !token) throw new Error('Connect your wallet to apply.');
       if (!proposal || !bidAmount) throw new Error('Proposal and bid amount required.');
+      
+      // Get the contract job ID - this must be a valid number from the smart contract
+      let jobId = selectedJob.contractJobId;
+      
+      // Validate that we have a valid contract job ID
+      if (typeof jobId === 'undefined' || jobId === null || jobId === '') {
+        throw new Error('This job cannot be applied to: missing contract job ID. The job may not have been properly created on-chain.');
+      }
+      
+      // Convert to number and validate
+      jobId = Number(jobId);
+      if (isNaN(jobId) || jobId < 0) {
+        throw new Error('Invalid contract job ID. This job cannot be applied to on-chain.');
+      }
+      
+      // Check if deadline has passed on the client side first
+      const now = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+      
+      // Get deadline from blockchain directly to ensure accuracy
+      const contractJob = await contract.getJob(jobId);
+      const blockchainDeadline = Number(contractJob.deadline);
+      
+      console.log('=== DEBUG DEADLINE CHECK ===');
+      console.log('Job ID:', jobId);
+      console.log('Selected Job from DB:', selectedJob);
+      console.log('Contract Job from Blockchain:', contractJob);
+      console.log('---');
+      console.log('Current timestamp:', now);
+      console.log('Blockchain deadline timestamp:', blockchainDeadline);
+      console.log('DB deadline (original):', selectedJob.deadline);
+      console.log('---');
+      console.log('Current date:', new Date(now * 1000).toISOString());
+      console.log('Blockchain deadline date:', new Date(blockchainDeadline * 1000).toISOString());
+      console.log('DB deadline date:', new Date(selectedJob.deadline).toISOString());
+      console.log('---');
+      console.log('Time difference (seconds):', blockchainDeadline - now);
+      console.log('Is deadline zero/invalid?', blockchainDeadline === 0 || blockchainDeadline < 1000000000);
+      console.log('===============================');
+      
+      if (now > blockchainDeadline) {
+        throw new Error(`This job's deadline has passed. Current: ${new Date(now * 1000).toLocaleString()}, Deadline: ${new Date(blockchainDeadline * 1000).toLocaleString()}`);
+      }
+      
       // Ensure bidAmount is a string number, not a hex string
       const numericBidAmount = Number(bidAmount);
       if (isNaN(numericBidAmount) || numericBidAmount <= 0) throw new Error('Bid amount must be a valid number.');
-      // Convert jobId to a number (assume jobs are indexed by array index or backend should provide a numeric jobId for the contract)
-      let jobId = selectedJob.jobId || selectedJob.contractId || selectedJob.id || selectedJob._id;
-      if (typeof jobId === 'string' && !/^[0-9]+$/.test(jobId)) {
-        throw new Error('This job cannot be applied to on-chain: jobId is not a numeric contract jobId.');
-      }
-      jobId = Number(jobId);
-      if (isNaN(jobId)) throw new Error('Invalid jobId for contract.');
       await contract.applyToProject(jobId, proposal, numericBidAmount.toString());
       setApplySuccess(true);
       setShowModal(false);
@@ -134,8 +171,13 @@ const ApplyForJobsPage = () => {
                 <span className="text-lg text-muted-foreground">Loading jobs...</span>
               </div>
             ) : filteredJobs.length === 0 ? (
-              <div className="text-center text-muted-foreground py-20">No jobs available to apply for at the moment.</div>
+              <>
+                <DeadlineChecker />
+                <div className="text-center text-muted-foreground py-20">No jobs available to apply for at the moment.</div>
+              </>
             ) : (
+              <>
+                <DeadlineChecker />
               <div className="grid gap-10 md:grid-cols-2 xl:grid-cols-2">
                 {filteredJobs.map(job => (
                   <div key={job._id} className="card-floating p-8 bg-white/90 rounded-3xl shadow-2xl border border-success/20 flex flex-col gap-6">
@@ -171,6 +213,7 @@ const ApplyForJobsPage = () => {
                   </div>
                 ))}
               </div>
+              </>
             )}
             {/* Modal for applying to a job */}
             {showModal && selectedJob && (
