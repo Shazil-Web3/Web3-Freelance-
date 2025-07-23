@@ -1,7 +1,6 @@
 const User = require('../models/User');
 const Job = require('../models/Job');
 const Application = require('../models/Application');
-const Review = require('../models/Review');
 const Transaction = require('../models/Transaction');
 
 // Get user profile by wallet address
@@ -43,22 +42,38 @@ exports.getDashboard = async (req, res) => {
     const jobsPosted = await Job.find({ client: user._id }).populate('freelancer');
     // Jobs assigned (if freelancer)
     const jobsAssigned = await Job.find({ freelancer: user._id });
+    // Attach latest project submission (with files) to each job
+    const ProjectSubmission = require('../models/ProjectSubmission');
+    const { getIpfsUrl } = require('../utils/ipfs');
+    async function attachSubmission(job) {
+      const submission = await ProjectSubmission.findOne({ job: job._id })
+        .populate('freelancer', 'username walletAddress');
+      if (submission) {
+        const submissionWithUrls = submission.toObject();
+        submissionWithUrls.files = submission.files.map(file => ({
+          ...file.toObject(),
+          url: getIpfsUrl(file.ipfsHash)
+        }));
+        job = job.toObject();
+        job.submission = submissionWithUrls;
+      }
+      return job;
+    }
+    const jobsPostedWithSub = await Promise.all(jobsPosted.map(attachSubmission));
+    const jobsAssignedWithSub = await Promise.all(jobsAssigned.map(attachSubmission));
     // Applications sent (if freelancer)
     const applications = await Application.find({ freelancer: user._id }).populate('job');
     // Applications received (if client)
     const applicationsReceived = await Application.find({}).populate({ path: 'job', match: { client: user._id } });
-    // Reviews
-    const reviews = await Review.find({ reviewee: user._id });
     // Transactions
     const transactions = await Transaction.find({ user: user._id });
 
     res.json({
       user,
-      jobsPosted,
-      jobsAssigned,
+      jobsPosted: jobsPostedWithSub,
+      jobsAssigned: jobsAssignedWithSub,
       applications,
       applicationsReceived,
-      reviews,
       transactions
     });
   } catch (err) {

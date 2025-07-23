@@ -15,6 +15,9 @@ import {
   Calendar,
   ChevronRight
 } from "lucide-react";
+import JobAsCrewOneContext from '@/context/Rcontext';
+import { useRouter } from 'next/navigation';
+import { ethers } from 'ethers';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
@@ -25,13 +28,17 @@ const Dashboard = () => {
   const [dashboardLoading, setDashboardLoading] = useState(false);
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState({});
+  const [jobSubmissions, setJobSubmissions] = useState({});
+  const [uploadedFiles, setUploadedFiles] = useState({});
 
-  // DEBUG LOGGING
+  const router = useRouter();
+  const [contractCtx, setContractCtx] = useState(null);
+
   if (typeof window !== 'undefined') {
-    console.log('DASHBOARD DEBUG:', { user, token, authLoading }); // Fix: use authLoading instead of loading
+    console.log('DASHBOARD DEBUG:', { user, token, authLoading });
     console.log('DASHBOARD: user=', user);
     console.log('DASHBOARD: token=', token);
-    console.log('DASHBOARD: loading=', authLoading); // Fix: use authLoading instead of loading
+    console.log('DASHBOARD: loading=', authLoading);
   }
 
   useEffect(() => {
@@ -39,8 +46,37 @@ const Dashboard = () => {
       console.log('DASHBOARD: Calling fetchDashboard');
       fetchDashboard();
     }
-    // eslint-disable-next-line
   }, [user, token]);
+
+  useEffect(() => {
+    async function initContract() {
+      if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_CONTRACT_ADDRESS && user && token) {
+        const ctx = await JobAsCrewOneContext.createAsync(process.env.NEXT_PUBLIC_CONTRACT_ADDRESS, window.ethereum);
+        setContractCtx(ctx);
+      }
+    }
+    initContract();
+  }, [user, token]);
+
+  useEffect(() => {
+    if (userType === 'client' && getOngoingJobsClient().length > 0 && token) {
+      getOngoingJobsClient().forEach(async (job) => {
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/submissions/${job._id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setJobSubmissions(prev => ({ ...prev, [job._id]: data.submission }));
+          } else {
+            setJobSubmissions(prev => ({ ...prev, [job._id]: null }));
+          }
+        } catch {
+          setJobSubmissions(prev => ({ ...prev, [job._id]: null }));
+        }
+      });
+    }
+  }, [userType, dashboardData, token]);
 
   async function fetchDashboard() {
     setDashboardLoading(true);
@@ -65,7 +101,6 @@ const Dashboard = () => {
     }
   }
 
-  // Accept or reject application
   async function handleApplicationAction(appId, status) {
     setActionLoading(prev => ({ ...prev, [appId]: true }));
     try {
@@ -86,64 +121,157 @@ const Dashboard = () => {
     }
   }
 
-  // Helper: get applications received for jobs posted by this client
+  async function handleFileUpload(event, jobId) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setActionLoading(prev => ({ ...prev, [`upload-${jobId}`]: true }));
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(file => {
+        formData.append('files', file);
+      });
+      formData.append('description', 'Project files uploaded by freelancer');
+
+      const res = await fetch(`${BACKEND_URL}/api/submissions/${jobId}/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!res.ok) throw new Error('Failed to upload files');
+      const data = await res.json();
+      alert('Files uploaded successfully to IPFS!');
+      setUploadedFiles(prev => ({ ...prev, [jobId]: true }));
+      await fetchDashboard();
+    } catch (err) {
+      alert(err.message || 'Failed to upload files');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`upload-${jobId}`]: false }));
+    }
+  }
+
+  async function handleMarkAsDone(jobId) {
+    setActionLoading(prev => ({ ...prev, [`complete-${jobId}`]: true }));
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/submissions/${jobId}/complete`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) throw new Error('Failed to mark project as complete');
+      alert('Project marked as complete. Awaiting client approval.');
+      await fetchDashboard();
+    } catch (err) {
+      alert(err.message || 'Failed to mark project as complete');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`complete-${jobId}`]: false }));
+    }
+  }
+
+  async function handleApproveProject(jobId) {
+    setActionLoading(prev => ({ ...prev, [`approve-${jobId}`]: true }));
+    try {
+      if (!contractCtx) throw new Error('Contract not ready');
+      const job = getOngoingJobsClient().find(j => j._id === jobId);
+      if (!job) throw new Error('Job not found');
+      const amount = ethers.BigNumber.from(job.budget.toString());
+      await contractCtx.releasePayment(jobId, { value: amount });
+      const res = await fetch(`${BACKEND_URL}/api/submissions/${jobId}/approve`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ feedback: 'Project approved by client' })
+      });
+      if (!res.ok) throw new Error('Failed to approve project in backend');
+      alert('Project approved! Payment released to freelancer.');
+      await fetchDashboard();
+    } catch (err) {
+      alert(err.message || 'Failed to approve project');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`approve-${jobId}`]: false }));
+    }
+  }
+
+  async function handleRaiseDispute(jobId) {
+    const title = prompt('Enter dispute title:');
+    const description = prompt('Enter dispute description:');
+    const disputeType = 'quality_issue';
+
+    if (!title || !description) return;
+
+    setActionLoading(prev => ({ ...prev, [`dispute-${jobId}`]: true }));
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/disputes/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ jobId, title, description, disputeType })
+      });
+
+      if (!res.ok) throw new Error('Failed to create dispute');
+      alert('Dispute created successfully. It will be reviewed.');
+      await fetchDashboard();
+    } catch (err) {
+      alert(err.message || 'Failed to create dispute');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`dispute-${jobId}`]: false }));
+    }
+  }
+
   function getApplicationsReceived() {
     if (!dashboardData?.applicationsReceived) return [];
-    // Only applications where job is not null (i.e., belongs to this client)
     return dashboardData.applicationsReceived.filter(app => app.job);
   }
 
-  // Helper: get applications sent by freelancer
   function getApplicationsSent() {
     return dashboardData?.applications || [];
   }
 
-  // Helper: get jobs posted by client
   function getJobsPosted() {
     return dashboardData?.jobsPosted || [];
   }
 
-  // Helper: get jobs assigned to freelancer
   function getJobsAssigned() {
     return dashboardData?.jobsAssigned || [];
   }
 
-  // Helper: get completed jobs for client
   function getCompletedJobsClient() {
     return getJobsPosted().filter(job => job.status === 'completed');
   }
 
-  // Helper: get completed jobs for freelancer
   function getCompletedJobsFreelancer() {
     return getJobsAssigned().filter(job => job.status === 'completed');
   }
 
-  // Helper: get ongoing jobs for client
   function getOngoingJobsClient() {
-    return getJobsPosted().filter(job => ['assigned', 'in_progress'].includes(job.status));
+    return getJobsPosted().filter(job => ['assigned', 'in_progress', 'submitted'].includes(job.status));
   }
 
-  // Helper: get ongoing jobs for freelancer
   function getOngoingJobsFreelancer() {
     return getJobsAssigned().filter(job => ['assigned', 'in_progress'].includes(job.status));
   }
 
-  // Helper: get hired freelancers for client
   function getHiredFreelancers() {
     return getJobsPosted().filter(job => job.freelancer);
   }
 
-  // Helper: get total spent for client
   function getTotalSpent() {
     return getJobsPosted().reduce((sum, job) => sum + (job.budget || 0), 0);
   }
 
-  // Helper: get total earned for freelancer
   function getTotalEarned() {
     return getJobsAssigned().reduce((sum, job) => sum + (job.budget || 0), 0);
   }
 
-  // Helper: get average rating (stub, needs backend support)
   function getAverageRating() {
     return 4.9;
   }
@@ -218,7 +346,6 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="pt-20">
-        {/* Dashboard Header */}
         <section className="py-12 px-12 lg:px-28 relative overflow-hidden w-full">
           <div className="absolute inset-0 bg-gradient-to-br from-success/18 via-background to-accent/18" />
           <div className="absolute top-1/2 left-[-10rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.22)_0%,_transparent_70%)] -translate-y-1/2" />
@@ -261,7 +388,6 @@ const Dashboard = () => {
 
         {userType === 'freelancer' ? (
           <>
-            {/* Freelancer Stats */}
             <section className="py-8 px-12 lg:px-28 relative overflow-hidden w-full">
               <div className="absolute top-1/2 left-[-8rem] w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.16)_0%,_transparent_70%)] -translate-y-1/2" />
               <div className="absolute top-1/2 right-[-8rem] w-[16rem] h-[16rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] -translate-y-1/2" />
@@ -302,7 +428,6 @@ const Dashboard = () => {
                 </div>
               </div>
             </section>
-            {/* Applied Jobs */}
             <section className="py-8">
               <div className="container mx-auto px-8 lg:px-12">
                 <h2 className="text-2xl font-bold mb-6">Recent Applications</h2>
@@ -343,7 +468,6 @@ const Dashboard = () => {
                 </div>
               </div>
             </section>
-            {/* Ongoing Projects */}
             <section className="py-8 relative overflow-hidden w-full max-w-full">
               <div className="absolute top-1/2 left-1/4 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
               <div className="absolute top-1/2 right-1/4 w-[16rem] h-[16rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.16)_0%,_transparent_70%)] -translate-y-1/2" />
@@ -374,6 +498,36 @@ const Dashboard = () => {
                             <span className="font-semibold text-gradient-green">${job.budget}</span>
                           </div>
                         </div>
+                        <div className="flex justify-between items-center mt-4">
+                          <input
+                            type="file"
+                            multiple
+                            onChange={(e) => handleFileUpload(e, job._id)}
+                            className="hidden"
+                            id={`upload-${job._id}`}
+                            disabled={actionLoading[`upload-${job._id}`]}
+                          />
+                          <label 
+                            htmlFor={`upload-${job._id}`} 
+                            className={`bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md transition-colors font-medium cursor-pointer ${
+                              actionLoading[`upload-${job._id}`] ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                          >
+                            {actionLoading[`upload-${job._id}`] ? 'Uploading...' : 'Upload Files to IPFS'}
+                          </label>
+                          <button 
+                            onClick={() => handleMarkAsDone(job._id)}
+                            disabled={
+                              actionLoading[`complete-${job._id}`] ||
+                              !uploadedFiles[job._id]
+                            }
+                            className={`bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md ml-2 transition-colors font-medium ${
+                              actionLoading[`complete-${job._id}`] || !uploadedFiles[job._id] ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                          >
+                            {actionLoading[`complete-${job._id}`] ? 'Marking...' : 'Mark as Done'}
+                          </button>
+                        </div>
                       </div>
                     ))
                   ) : (
@@ -386,7 +540,6 @@ const Dashboard = () => {
                 </div>
               </div>
             </section>
-            {/* Completed Projects */}
             <section className="py-8 relative overflow-hidden w-full max-w-full">
               <div className="absolute top-1/2 left-[-6rem] w-[14rem] h-[14rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] -translate-y-1/2" />
               <div className="absolute top-1/2 right-1/4 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
@@ -430,7 +583,6 @@ const Dashboard = () => {
           </>
         ) : (
           <>
-            {/* Client Stats */}
             <section className="py-8 relative overflow-hidden w-full max-w-full">
               <div className="absolute top-1/2 left-[-8rem] w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.16)_0%,_transparent_70%)] -translate-y-1/2" />
               <div className="absolute top-1/2 right-[-8rem] w-[16rem] h-[16rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] -translate-y-1/2" />
@@ -471,7 +623,6 @@ const Dashboard = () => {
                 </div>
               </div>
             </section>
-            {/* Applications Received (Proposals) */}
             <section className="py-8">
               <div className="container mx-auto px-8 lg:px-12">
                 <h2 className="text-2xl font-bold mb-6">Proposals Received</h2>
@@ -524,7 +675,6 @@ const Dashboard = () => {
                 </div>
               </div>
             </section>
-            {/* Hired Freelancers */}
             <section className="py-8">
               <div className="container mx-auto px-8 lg:px-12">
                 <h2 className="text-2xl font-bold mb-6">Recent Hires</h2>
@@ -564,7 +714,6 @@ const Dashboard = () => {
                 </div>
               </div>
             </section>
-            {/* Client Ongoing Projects */}
             <section className="py-8 relative overflow-hidden w-full max-w-full">
               <div className="absolute top-1/2 left-1/4 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] -translate-y-1/2" />
               <div className="absolute top-1/2 right-1/4 w-[16rem] h-[16rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.16)_0%,_transparent_70%)] -translate-y-1/2" />
@@ -596,6 +745,53 @@ const Dashboard = () => {
                             <span className="font-semibold text-gradient-green">${job.budget}</span>
                           </div>
                         </div>
+                        {jobSubmissions[job._id]?.files?.length > 0 && (
+                          <div className="mb-2">
+                            <span className="font-semibold">Files from Freelancer:</span>
+                            <ul className="list-disc ml-6">
+                              {jobSubmissions[job._id]?.files?.map(file => (
+                                <li key={file.cid}>
+                                  <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                                    {file.name}
+                                  </a>
+                                  {file.fileSize && (
+                                    <span className="ml-2 text-xs text-muted-foreground">({(file.fileSize / 1024).toFixed(1)} KB)</span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center mt-4">
+                          <button 
+                            onClick={() => handleApproveProject(job._id)}
+                            disabled={
+                              actionLoading[`approve-${job._id}`] ||
+                              !jobSubmissions[job._id] ||
+                              !jobSubmissions[job._id].files ||
+                              jobSubmissions[job._id].files.length === 0
+                            }
+                            className={`bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors font-medium ${
+                              actionLoading[`approve-${job._id}`] || !jobSubmissions[job._id] || !jobSubmissions[job._id].files || jobSubmissions[job._id].files.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                          >
+                            {actionLoading[`approve-${job._id}`] ? 'Approving...' : 'Approve Project'}
+                          </button>
+                          <button 
+                            onClick={() => router.push(`/disputes?jobId=${job._id}`)}
+                            disabled={
+                              actionLoading[`dispute-${job._id}`] ||
+                              !jobSubmissions[job._id] ||
+                              !jobSubmissions[job._id].files ||
+                              jobSubmissions[job._id].files.length === 0
+                            }
+                            className={`bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md ml-2 transition-colors font-medium ${
+                              actionLoading[`dispute-${job._id}`] || !jobSubmissions[job._id] || !jobSubmissions[job._id].files || jobSubmissions[job._id].files.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                          >
+                            {actionLoading[`dispute-${job._id}`] ? 'Creating Dispute...' : 'Raise a Dispute'}
+                          </button>
+                        </div>
                       </div>
                     ))
                   ) : (
@@ -608,7 +804,6 @@ const Dashboard = () => {
                 </div>
               </div>
             </section>
-            {/* Client Completed Projects */}
             <section className="py-8 relative overflow-hidden w-full max-w-full">
               <div className="absolute top-1/2 left-[-6rem] w-[14rem] h-[14rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] -translate-y-1/2" />
               <div className="absolute top-1/2 right-1/4 w-[18rem] h-[18rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] -translate-y-1/2" />

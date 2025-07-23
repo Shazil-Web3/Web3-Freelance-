@@ -6,5 +6,7 @@ const authController = require('../controllers/authController');
 router.get('/nonce/:wallet', authController.getNonce);
 // Verify signature and authenticate
 router.post('/verify', authController.verifySignature);
+// Validate JWT token
+router.post('/verify-token', authController.verifyToken);
 
 module.exports = router; 

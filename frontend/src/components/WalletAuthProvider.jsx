@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAccount, useSignMessage, useDisconnect } from 'wagmi';
-import { ethers } from 'ethers';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
@@ -14,8 +13,38 @@ export function WalletAuthProvider({ children }) {
   const { disconnect } = useDisconnect();
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  // Restore session on app load
+  useEffect(() => {
+    const restoreSession = async () => {
+      const storedToken = localStorage.getItem('jwt');
+      const storedUser = localStorage.getItem('user');
+      if (storedToken && storedUser) {
+        // Validate token with backend
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/auth/verify-token`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${storedToken}` }
+          });
+          if (res.ok) {
+            setUser(JSON.parse(storedUser));
+            setToken(storedToken);
+            setLoading(false);
+            return;
+          }
+        } catch (err) {
+          console.log('Stored token is invalid or expired');
+        }
+        localStorage.removeItem('jwt');
+        localStorage.removeItem('user');
+      }
+      setLoading(false);
+    };
+    restoreSession();
+  }, []);
+
+  // Authenticate when wallet connects
   useEffect(() => {
     if (!isConnected) {
       setUser(null);
@@ -24,7 +53,7 @@ export function WalletAuthProvider({ children }) {
       localStorage.removeItem('user');
       return;
     }
-    if (address) {
+    if (address && !token) {
       authenticateWallet(address);
     }
     // eslint-disable-next-line

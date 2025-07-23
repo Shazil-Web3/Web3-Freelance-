@@ -18,13 +18,10 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/jobs', require('./routes/jobRoutes'));
 app.use('/api/milestones', require('./routes/milestoneRoutes'));
-app.use('/api/contracts', require('./routes/contractRoutes'));
 app.use('/api/applications', require('./routes/applicationRoutes'));
-app.use('/api/messages', require('./routes/messageRoutes'));
-app.use('/api/notifications', require('./routes/notificationRoutes'));
-app.use('/api/reviews', require('./routes/reviewRoutes'));
-app.use('/api/admin', require('./routes/adminRoutes'));
-app.use('/api/files', require('./routes/fileRoutes'));
+app.use('/api/submissions', require('./routes/projectSubmissionRoutes'));
+app.use('/api/disputes', require('./routes/disputeRoutes'));
+app.use('/api/test', require('./routes/testRoutes'));
 
 // Error handler
 app.use(errorHandler);
