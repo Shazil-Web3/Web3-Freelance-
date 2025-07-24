@@ -68,21 +68,68 @@ exports.getDashboard = async (req, res) => {
     // Applications sent (if freelancer)
     const applications = await Application.find({ freelancer: user._id }).populate('job');
     // Applications received (if client)
-    const applicationsReceived = await Application.find({}).populate({ path: 'job', match: { client: user._id } });
+    const applicationsReceived = await Application.find({})
+      .populate({ path: 'job', match: { client: user._id } })
+      .populate({
+        path: 'freelancer',
+        select: 'username walletAddress email userRole createdAt',
+        model: 'User'
+      });
+    
+    // Filter out applications where job is null (doesn't match client)
+    const validApplicationsReceived = applicationsReceived.filter(app => app.job !== null);
+    
+    // Debug: Log freelancer data for each application
+    console.log('DEBUG: Applications received for client:', user.walletAddress);
+    console.log('DEBUG: Total applications before filtering:', applicationsReceived.length);
+    console.log('DEBUG: Valid applications after filtering:', validApplicationsReceived.length);
+    
+    validApplicationsReceived.forEach((app, index) => {
+      console.log(`Application ${index + 1}:`, {
+        appId: app._id,
+        jobTitle: app.job?.title,
+        jobId: app.job?._id,
+        freelancerId: app.freelancer?._id,
+        freelancerObjectId: app.freelancer,
+        freelancerUsername: app.freelancer?.username,
+        freelancerWallet: app.freelancer?.walletAddress,
+        freelancerEmail: app.freelancer?.email,
+        freelancerFull: app.freelancer,
+        status: app.status
+      });
+    });
+    
+    // Also check if there are any orphaned applications
+    const orphanedApps = applicationsReceived.filter(app => app.job === null);
+    if (orphanedApps.length > 0) {
+      console.log('DEBUG: Found orphaned applications (no matching job):', orphanedApps.length);
+      orphanedApps.forEach((app, index) => {
+        console.log(`Orphaned Application ${index + 1}:`, {
+          appId: app._id,
+          jobId: app.job,
+          freelancerId: app.freelancer?._id,
+          status: app.status
+        });
+      });
+    }
     // Transactions
     const transactions = await Transaction.find({ user: user._id });
 
     // Add jobId to applications and applicationsReceived
     const addJobIdToApp = (app) => {
-      app = app.toObject();
-      if (app.job && app.job.contractJobId !== undefined) {
-        app.jobId = typeof app.job.contractJobId === 'number' ? app.job.contractJobId : Number(app.job.contractJobId);
-        if (!app.job.jobId) app.job.jobId = app.jobId;
+      const appObj = app.toObject ? app.toObject() : app;
+      if (appObj.job && appObj.job.contractJobId !== undefined) {
+        appObj.jobId = typeof appObj.job.contractJobId === 'number' ? appObj.job.contractJobId : Number(appObj.job.contractJobId);
+        if (!appObj.job.jobId) appObj.job.jobId = appObj.jobId;
       }
-      return app;
+      // Ensure freelancer data is properly preserved
+      if (app.freelancer && !appObj.freelancer) {
+        appObj.freelancer = app.freelancer.toObject ? app.freelancer.toObject() : app.freelancer;
+      }
+      return appObj;
     };
     const applicationsWithJobId = applications.map(addJobIdToApp);
-    const applicationsReceivedWithJobId = applicationsReceived.map(addJobIdToApp);
+    const applicationsReceivedWithJobId = validApplicationsReceived.map(addJobIdToApp);
 
     res.json({
       user,

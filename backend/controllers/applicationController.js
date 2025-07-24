@@ -15,10 +15,36 @@ exports.createApplication = async (req, res) => {
   try {
     const { job, freelancer, proposal, fee, status } = req.body;
     
+    console.log('DEBUG: Creating application with data:', {
+      job,
+      freelancer,
+      proposal,
+      fee,
+      status
+    });
+    
     // Validate the job exists
     const jobDoc = await Job.findById(job);
     if (!jobDoc) {
       return res.status(404).json({ message: 'Job not found' });
+    }
+    
+    // Validate the freelancer exists and has a wallet address
+    const freelancerDoc = await User.findById(freelancer);
+    if (!freelancerDoc) {
+      console.error('DEBUG: Freelancer not found:', freelancer);
+      return res.status(404).json({ message: 'Freelancer not found' });
+    }
+    
+    console.log('DEBUG: Freelancer found:', {
+      id: freelancerDoc._id,
+      walletAddress: freelancerDoc.walletAddress,
+      username: freelancerDoc.username
+    });
+    
+    if (!freelancerDoc.walletAddress) {
+      console.error('DEBUG: Freelancer missing wallet address:', freelancerDoc);
+      return res.status(400).json({ message: 'Freelancer does not have a valid wallet address' });
     }
     
     // Prevent duplicate applications
@@ -35,8 +61,11 @@ exports.createApplication = async (req, res) => {
       status: status || 'pending'
     });
     
+    console.log('DEBUG: Application created successfully:', application._id);
+    
     res.status(201).json(application);
   } catch (err) {
+    console.error('DEBUG: Application creation error:', err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -118,19 +147,27 @@ exports.listForFreelancer = async (req, res) => {
 exports.updateStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const app = await Application.findById(req.params.id).populate('job');
+    const app = await Application.findById(req.params.id).populate('job').populate('freelancer');
     if (!app) return res.status(404).json({ message: 'Application not found' });
     const job = await Job.findById(app.job._id);
     if (job.client.toString() !== req.user.id) return res.status(403).json({ message: 'Not authorized' });
     if (!['accepted', 'rejected'].includes(status)) return res.status(400).json({ message: 'Invalid status' });
+    
     app.status = status;
     await app.save();
+    
     // If accepted, assign freelancer to job and update job status
     if (status === 'accepted') {
       job.freelancer = app.freelancer;
       job.status = 'in_progress';
       await job.save();
+      
+      // Note: Smart contract interaction should be handled by the frontend
+      // The frontend will call contractCtx.selectFreelancer(job.contractJobId, freelancer.walletAddress)
+      console.log(`Application accepted: Job ${job._id} assigned to freelancer ${app.freelancer._id}`);
+      console.log(`Contract job ID: ${job.contractJobId}, Freelancer wallet: ${app.freelancer.walletAddress}`);
     }
+    
     res.json(app);
   } catch (err) {
     res.status(500).json({ message: err.message });
