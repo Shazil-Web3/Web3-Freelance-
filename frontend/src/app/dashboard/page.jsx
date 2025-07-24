@@ -197,9 +197,13 @@ const Dashboard = () => {
       if (!contractCtx) throw new Error('Contract not ready');
       const job = getOngoingJobsClient().find(j => j._id === jobId);
       if (!job) throw new Error('Job not found');
+      if (!job.budget && job.budget !== 0) throw new Error('Job budget is not defined');
+      if (!job.jobId && job.jobId !== 0) throw new Error('Job ID is not defined');
+      
       const amount = ethers.BigNumber.from(job.budget.toString());
       // Use job.jobId for contract call
       await contractCtx.releasePayment(Number(job.jobId), { value: amount });
+      
       const res = await fetch(`${BACKEND_URL}/api/submissions/${jobId}/approve`, {
         method: 'PATCH',
         headers: {
@@ -208,10 +212,16 @@ const Dashboard = () => {
         },
         body: JSON.stringify({ feedback: 'Project approved by client' })
       });
-      if (!res.ok) throw new Error('Failed to approve project in backend');
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to approve project in backend');
+      }
+      
       alert('Project approved! Payment released to freelancer.');
       await fetchDashboard();
     } catch (err) {
+      console.error('Approve project error:', err);
       alert(err.message || 'Failed to approve project');
     } finally {
       setActionLoading(prev => ({ ...prev, [`approve-${jobId}`]: false }));
@@ -765,20 +775,66 @@ const Dashboard = () => {
                           </div>
                         </div>
                         {jobSubmissions[job._id]?.files?.length > 0 && (
-                          <div className="mb-2">
-                            <span className="font-semibold">Files from Freelancer:</span>
-                            <ul className="list-disc ml-6">
+                          <div className="mb-4">
+                            <span className="font-semibold text-lg">Files from Freelancer:</span>
+                            <div className="mt-2 space-y-2">
                               {jobSubmissions[job._id]?.files?.map((file, idx) => (
-                                <li key={file.cid || file.ipfsHash || file.url || (file.name + '-' + idx)}>
-                                  <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                                    {file.name}
-                                  </a>
-                                  {file.fileSize && (
-                                    <span className="ml-2 text-xs text-muted-foreground">({(file.fileSize / 1024).toFixed(1)} KB)</span>
-                                  )}
-                                </li>
+                                <div key={file.ipfsHash || file.cid || (file.filename + '-' + idx)} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                      </svg>
+                                    </div>
+                                    <div>
+                                      <div className="font-medium text-gray-900">{file.filename || file.name || 'Unknown file'}</div>
+                                      {file.fileSize && (
+                                        <div className="text-sm text-gray-500">Size: {(file.fileSize / 1024).toFixed(1)} KB</div>
+                                      )}
+                                      {file.mimeType && (
+                                        <div className="text-xs text-gray-400">Type: {file.mimeType}</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex space-x-2">
+                                    <a 
+                                      href={file.url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer" 
+                                      className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
+                                    >
+                                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                      </svg>
+                                      View
+                                    </a>
+                                    <a 
+                                      href={file.url} 
+                                      download={file.filename || file.name || 'download'}
+                                      className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors"
+                                    >
+                                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                      </svg>
+                                      Download
+                                    </a>
+                                    <a 
+                                      href={`https://ipfs.io/ipfs/${file.ipfsHash || file.cid}`} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer" 
+                                      className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 transition-colors"
+                                      title="View on IPFS"
+                                    >
+                                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                      </svg>
+                                      IPFS
+                                    </a>
+                                  </div>
+                                </div>
                               ))}
-                            </ul>
+                            </div>
                           </div>
                         )}
                         <div className="flex justify-between items-center mt-4">
