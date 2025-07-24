@@ -30,7 +30,7 @@ function formatDeadline(deadline) {
 }
 
 const ApplyForJobsPage = () => {
-  const { user, token, loading: authLoading } = useWalletAuth();
+  const { user, token, loading: authLoading, reAuthenticate } = useWalletAuth();
   const [jobs, setJobs] = useState([]);
   const [jobsLoading, setJobsLoading] = useState(false);
   const [contract, setContract] = useState(null);
@@ -132,14 +132,44 @@ const ApplyForJobsPage = () => {
     setShowModal(true);
   };
 
+  const ensureWalletConnection = async () => {
+    // Check if wallet is still connected
+    if (!window.ethereum) {
+      throw new Error('No wallet found. Please install MetaMask or another Web3 wallet.');
+    }
+
+    try {
+      // Request account access if needed
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      if (accounts.length === 0) {
+        // Request wallet connection
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+      }
+      
+      // Re-initialize contract with fresh signer if needed
+      if (!contract || !contract.signer) {
+        const newContract = await JobAsCrewOneContext.createAsync(CONTRACT_ADDRESS, window.ethereum);
+        setContract(newContract);
+        return newContract;
+      }
+      
+      return contract;
+    } catch (error) {
+      console.error('Wallet connection error:', error);
+      throw new Error('Please connect your wallet and try again.');
+    }
+  };
+
   const handleApply = async (e) => {
     e.preventDefault();
     setApplyLoading(true);
     setApplyError('');
     try {
-      if (!contract) throw new Error('Contract not ready.');
       if (!user || !token) throw new Error('Connect your wallet to apply.');
       if (!proposal || !bidAmount) throw new Error('Proposal and bid amount required.');
+      
+      // Ensure wallet is properly connected
+      const activeContract = await ensureWalletConnection();
       
       // Get the contract job ID - this must be a valid number from the smart contract
       let jobId = selectedJob.contractJobId;
@@ -159,7 +189,7 @@ const ApplyForJobsPage = () => {
       const now = Math.floor(Date.now() / 1000); // Current timestamp in seconds
       
       // Get deadline from blockchain directly to ensure accuracy
-      const contractJob = await contract.getJob(jobId);
+      const contractJob = await activeContract.getJob(jobId);
       const blockchainDeadline = Number(contractJob.deadline);
       
       console.log('=== DEBUG DEADLINE CHECK ===');
@@ -187,8 +217,20 @@ const ApplyForJobsPage = () => {
       const numericBidAmount = Number(bidAmount);
       if (isNaN(numericBidAmount) || numericBidAmount <= 0) throw new Error('Bid amount must be a valid number.');
       
-      // Apply on blockchain
-      await contract.applyToProject(jobId, proposal, numericBidAmount.toString());
+      // Apply on blockchain with retry mechanism
+      try {
+        await activeContract.applyToProject(jobId, proposal, numericBidAmount.toString());
+      } catch (contractError) {
+        console.error('Contract error:', contractError);
+        // If it's an authorization error, try to reconnect wallet
+        if (contractError.code === 4100 || contractError.message.includes('unauthorized') || contractError.message.includes('not been authorized')) {
+          // Try to reconnect and retry once
+          const reconnectedContract = await ensureWalletConnection();
+          await reconnectedContract.applyToProject(jobId, proposal, numericBidAmount.toString());
+        } else {
+          throw contractError;
+        }
+      }
       
       // Create application record in database
       console.log('Creating application with data:', {
@@ -228,7 +270,21 @@ const ApplyForJobsPage = () => {
       setApplySuccess(true);
       setShowModal(false);
     } catch (err) {
-      setApplyError(err.message || 'Failed to apply.');
+      console.error('Application error:', err);
+      let errorMessage = err.message || 'Failed to apply.';
+      
+      // Provide user-friendly error messages
+      if (err.code === 4100) {
+        errorMessage = 'Wallet authorization required. Please check your wallet and approve the transaction.';
+      } else if (err.message.includes('user rejected')) {
+        errorMessage = 'Transaction was rejected. Please try again and approve the transaction in your wallet.';
+      } else if (err.message.includes('insufficient funds')) {
+        errorMessage = 'Insufficient funds in your wallet to complete this transaction.';
+      } else if (err.message.includes('network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      }
+      
+      setApplyError(errorMessage);
     } finally {
       setApplyLoading(false);
     }

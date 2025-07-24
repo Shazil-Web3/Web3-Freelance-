@@ -14,6 +14,13 @@ export function WalletAuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Function to re-authenticate wallet
+  const reAuthenticate = async () => {
+    if (address && isConnected) {
+      await authenticateWallet(address);
+    }
+  };
 
   // Restore session on app load
   useEffect(() => {
@@ -94,7 +101,7 @@ export function WalletAuthProvider({ children }) {
   }
 
   return (
-    <WalletAuthContext.Provider value={{ user, token, loading }}>
+    <WalletAuthContext.Provider value={{ user, token, loading, reAuthenticate }}>
       {children}
     </WalletAuthContext.Provider>
   );
