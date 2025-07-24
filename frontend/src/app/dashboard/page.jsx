@@ -104,6 +104,8 @@ const Dashboard = () => {
   async function handleApplicationAction(appId, status) {
     setActionLoading(prev => ({ ...prev, [appId]: true }));
     try {
+      // Find the application object to get jobId and freelancer address
+      const app = getApplicationsReceived().find(a => a._id === appId);
       const res = await fetch(`${BACKEND_URL}/api/applications/${appId}/status`, {
         method: 'PATCH',
         headers: {
@@ -113,6 +115,14 @@ const Dashboard = () => {
         body: JSON.stringify({ status })
       });
       if (!res.ok) throw new Error('Failed to update application');
+      // If approving, also call the smart contract
+      if (status === 'accepted' && contractCtx && app && app.job && app.freelancer && app.freelancer.walletAddress) {
+        try {
+          await contractCtx.selectFreelancer(Number(app.job.jobId), app.freelancer.walletAddress);
+        } catch (err) {
+          alert('Smart contract: Failed to select freelancer: ' + (err.message || err));
+        }
+      }
       await fetchDashboard();
     } catch (err) {
       alert(err.message || 'Failed to update application');
@@ -153,7 +163,7 @@ const Dashboard = () => {
     }
   }
 
-  async function handleMarkAsDone(jobId) {
+  async function handleMarkAsDone(jobId, jobObj) {
     setActionLoading(prev => ({ ...prev, [`complete-${jobId}`]: true }));
     try {
       const res = await fetch(`${BACKEND_URL}/api/submissions/${jobId}/complete`, {
@@ -164,6 +174,14 @@ const Dashboard = () => {
       });
 
       if (!res.ok) throw new Error('Failed to mark project as complete');
+      // Also call the smart contract to complete milestone
+      if (contractCtx && jobObj && jobObj.jobId !== undefined) {
+        try {
+          await contractCtx.completeMilestone(Number(jobObj.jobId), 'Work completed by freelancer');
+        } catch (err) {
+          alert('Smart contract: Failed to complete milestone: ' + (err.message || err));
+        }
+      }
       alert('Project marked as complete. Awaiting client approval.');
       await fetchDashboard();
     } catch (err) {
@@ -180,7 +198,8 @@ const Dashboard = () => {
       const job = getOngoingJobsClient().find(j => j._id === jobId);
       if (!job) throw new Error('Job not found');
       const amount = ethers.BigNumber.from(job.budget.toString());
-      await contractCtx.releasePayment(jobId, { value: amount });
+      // Use job.jobId for contract call
+      await contractCtx.releasePayment(Number(job.jobId), { value: amount });
       const res = await fetch(`${BACKEND_URL}/api/submissions/${jobId}/approve`, {
         method: 'PATCH',
         headers: {
@@ -516,7 +535,7 @@ const Dashboard = () => {
                             {actionLoading[`upload-${job._id}`] ? 'Uploading...' : 'Upload Files to IPFS'}
                           </label>
                           <button 
-                            onClick={() => handleMarkAsDone(job._id)}
+                            onClick={() => handleMarkAsDone(job._id, job)}
                             disabled={
                               actionLoading[`complete-${job._id}`] ||
                               !uploadedFiles[job._id]
@@ -749,8 +768,8 @@ const Dashboard = () => {
                           <div className="mb-2">
                             <span className="font-semibold">Files from Freelancer:</span>
                             <ul className="list-disc ml-6">
-                              {jobSubmissions[job._id]?.files?.map(file => (
-                                <li key={file.cid}>
+                              {jobSubmissions[job._id]?.files?.map((file, idx) => (
+                                <li key={file.cid || file.ipfsHash || file.url || (file.name + '-' + idx)}>
                                   <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
                                     {file.name}
                                   </a>

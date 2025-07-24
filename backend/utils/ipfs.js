@@ -1,57 +1,42 @@
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
+const axios = require('axios');
+const dotenv = require('dotenv');
+dotenv.config();
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Mock IPFS implementation for development
-// In production, replace this with actual IPFS integration
-async function uploadToIPFS(fileBuffer) {
-  try {
-    console.log('Mock IPFS: Attempting to upload file...');
-    console.log('File buffer size:', fileBuffer.length);
-    
-    // Generate a unique hash for the file (simulating IPFS CID)
-    const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
-    const mockCid = `Qm${hash.substring(0, 44)}`; // Mock IPFS CID format
-    
-    // Save file locally (simulating IPFS storage)
-    const fileName = `${mockCid}.bin`;
-    const filePath = path.join(uploadsDir, fileName);
-    fs.writeFileSync(filePath, fileBuffer);
-    
-    console.log('Mock IPFS upload successful:', mockCid);
-    console.log('File saved locally at:', filePath);
-    
-    return mockCid;
-  } catch (error) {
-    console.error('Mock IPFS upload error:', error);
-    throw new Error(`File upload failed: ${error.message}`);
-  }
-}
-
-// Alternative real IPFS implementation (commented out for now)
-/*
-const { create } = require('ipfs-http-client');
-const ipfs = create({ 
-  host: 'ipfs.infura.io',
-  port: 5001,
-  protocol: 'https'
-});
+const PINATA_JWT = process.env.PINATA_JWT;
 
 async function uploadToIPFS(fileBuffer) {
   try {
-    const result = await ipfs.add(fileBuffer);
-    return result.cid.toString();
+    if (!PINATA_JWT) {
+      throw new Error('Pinata JWT is not set in environment variables');
+    }
+
+    const url = 'https://api.pinata.cloud/pinning/pinFileToIPFS';
+    const FormData = require('form-data');
+    const formData = new FormData();
+    formData.append('file', fileBuffer, {
+      filename: 'upload.bin',
+      contentType: 'application/octet-stream',
+    });
+
+    const response = await axios.post(url, formData, {
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      headers: {
+        ...formData.getHeaders(),
+        Authorization: `Bearer ${PINATA_JWT}`,
+      },
+    });
+
+    if (response.data && response.data.IpfsHash) {
+      return response.data.IpfsHash;
+    } else {
+      throw new Error('Invalid response from Pinata: ' + JSON.stringify(response.data));
+    }
   } catch (error) {
-    throw new Error(`IPFS upload failed: ${error.message}`);
+    console.error('Pinata IPFS upload error:', error);
+    throw new Error(`Pinata IPFS upload failed: ${error.message}`);
   }
 }
-*/
 
 function getIpfsUrl(cid) {
   return `https://ipfs.io/ipfs/${cid}`;

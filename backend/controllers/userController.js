@@ -56,7 +56,11 @@ exports.getDashboard = async (req, res) => {
         }));
         job = job.toObject();
         job.submission = submissionWithUrls;
+      } else {
+        job = job.toObject();
       }
+      // Always include contractJobId as jobId (number)
+      job.jobId = typeof job.contractJobId === 'number' ? job.contractJobId : Number(job.contractJobId);
       return job;
     }
     const jobsPostedWithSub = await Promise.all(jobsPosted.map(attachSubmission));
@@ -68,12 +72,24 @@ exports.getDashboard = async (req, res) => {
     // Transactions
     const transactions = await Transaction.find({ user: user._id });
 
+    // Add jobId to applications and applicationsReceived
+    const addJobIdToApp = (app) => {
+      app = app.toObject();
+      if (app.job && app.job.contractJobId !== undefined) {
+        app.jobId = typeof app.job.contractJobId === 'number' ? app.job.contractJobId : Number(app.job.contractJobId);
+        if (!app.job.jobId) app.job.jobId = app.jobId;
+      }
+      return app;
+    };
+    const applicationsWithJobId = applications.map(addJobIdToApp);
+    const applicationsReceivedWithJobId = applicationsReceived.map(addJobIdToApp);
+
     res.json({
       user,
       jobsPosted: jobsPostedWithSub,
       jobsAssigned: jobsAssignedWithSub,
-      applications,
-      applicationsReceived,
+      applications: applicationsWithJobId,
+      applicationsReceived: applicationsReceivedWithJobId,
       transactions
     });
   } catch (err) {
