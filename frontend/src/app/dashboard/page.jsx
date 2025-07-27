@@ -197,12 +197,10 @@ const Dashboard = () => {
       if (!contractCtx) throw new Error('Contract not ready');
       const job = getOngoingJobsClient().find(j => j._id === jobId);
       if (!job) throw new Error('Job not found');
-      if (!job.budget && job.budget !== 0) throw new Error('Job budget is not defined');
       if (!job.jobId && job.jobId !== 0) throw new Error('Job ID is not defined');
       
-      const amount = ethers.BigNumber.from(job.budget.toString());
-      // Use job.jobId for contract call
-      await contractCtx.releasePayment(Number(job.jobId), { value: amount });
+      // Use job.jobId for contract call - no value needed since funds are in escrow
+      await contractCtx.releasePayment(Number(job.jobId));
       
       const res = await fetch(`${BACKEND_URL}/api/submissions/${jobId}/approve`, {
         method: 'PATCH',
