@@ -154,4 +154,188 @@ contract JobAsCrewOneTest is Test {
         (bool failed, ) = address(jobAsCrewOne).call{value: 1 ether}("");
         assertFalse(failed);
     }
+
+    function testRaiseDispute() public {
+        // Setup job
+        JobAsCrewOne.Milestone[] memory ms = new JobAsCrewOne.Milestone[](1);
+        ms[0] = JobAsCrewOne.Milestone("Milestone 1", 1 ether, false, false, "");
+        vm.prank(client);
+        jobAsCrewOne.createJob{value: 1 ether}("Test Job", ms, block.timestamp + 7 days);
+        vm.prank(freelancer);
+        jobAsCrewOne.applyToProject(0, "I will do it", 1 ether);
+        vm.prank(client);
+        jobAsCrewOne.selectFreelancer(0, freelancer);
+
+        // Raise dispute as client
+        vm.prank(client);
+        jobAsCrewOne.raiseDispute(0, "Quality issue");
+        
+        ( , , , , , JobAsCrewOne.JobStatus status, , , , , ) = jobAsCrewOne.jobs(0);
+        assertEq(uint256(status), uint256(JobAsCrewOne.JobStatus.Disputed));
+
+        // Raise dispute as freelancer
+        JobAsCrewOne.Milestone[] memory ms2 = new JobAsCrewOne.Milestone[](1);
+        ms2[0] = JobAsCrewOne.Milestone("Milestone 1", 1 ether, false, false, "");
+        vm.prank(client);
+        jobAsCrewOne.createJob{value: 1 ether}("Test Job 2", ms2, block.timestamp + 7 days);
+        vm.prank(freelancer);
+        jobAsCrewOne.applyToProject(1, "I will do it", 1 ether);
+        vm.prank(client);
+        jobAsCrewOne.selectFreelancer(1, freelancer);
+
+        vm.prank(freelancer);
+        jobAsCrewOne.raiseDispute(1, "Payment issue");
+        
+        ( , , , , , JobAsCrewOne.JobStatus status2, , , , , ) = jobAsCrewOne.jobs(1);
+        assertEq(uint256(status2), uint256(JobAsCrewOne.JobStatus.Disputed));
+    }
+
+    function testResolveDispute() public {
+        // Setup job and dispute
+        JobAsCrewOne.Milestone[] memory ms = new JobAsCrewOne.Milestone[](1);
+        ms[0] = JobAsCrewOne.Milestone("Milestone 1", 1 ether, false, false, "");
+        vm.prank(client);
+        jobAsCrewOne.createJob{value: 1 ether}("Test Job", ms, block.timestamp + 7 days);
+        vm.prank(freelancer);
+        jobAsCrewOne.applyToProject(0, "I will do it", 1 ether);
+        vm.prank(client);
+        jobAsCrewOne.selectFreelancer(0, freelancer);
+        vm.prank(client);
+        jobAsCrewOne.raiseDispute(0, "Quality issue");
+
+        // Setup resolver
+        vm.prank(owner);
+        jobAsCrewOne.assignDisputeResolver(resolver1, true);
+
+        // Resolve dispute
+        vm.prank(resolver1);
+        jobAsCrewOne.resolveDispute(0, JobAsCrewOne.Resolution.ClientWon);
+        
+        ( , , , , , JobAsCrewOne.JobStatus status, , , , , ) = jobAsCrewOne.jobs(0);
+        assertEq(uint256(status), uint256(JobAsCrewOne.JobStatus.Resolved));
+    }
+
+    function testWithdrawFreelancerEarnings() public {
+        // Setup job with completed milestone
+        JobAsCrewOne.Milestone[] memory ms = new JobAsCrewOne.Milestone[](1);
+        ms[0] = JobAsCrewOne.Milestone("Milestone 1", 1 ether, false, false, "");
+        vm.prank(client);
+        jobAsCrewOne.createJob{value: 1 ether}("Test Job", ms, block.timestamp + 7 days);
+        vm.prank(freelancer);
+        jobAsCrewOne.applyToProject(0, "I will do it", 1 ether);
+        vm.prank(client);
+        jobAsCrewOne.selectFreelancer(0, freelancer);
+        vm.prank(freelancer);
+        jobAsCrewOne.completeMilestone(0, "Done");
+
+        uint256 initialBalance = freelancer.balance;
+        vm.prank(freelancer);
+        jobAsCrewOne.withdrawFreelancerEarnings();
+        assertGt(freelancer.balance, initialBalance);
+    }
+
+    function testCancelProject() public {
+        JobAsCrewOne.Milestone[] memory ms = new JobAsCrewOne.Milestone[](1);
+        ms[0] = JobAsCrewOne.Milestone("Milestone 1", 1 ether, false, false, "");
+        vm.prank(client);
+        jobAsCrewOne.createJob{value: 1 ether}("Test Job", ms, block.timestamp + 7 days);
+
+        uint256 initialBalance = client.balance;
+        vm.prank(client);
+        jobAsCrewOne.cancelProject(0);
+        
+        ( , , , , , JobAsCrewOne.JobStatus status, , , , , ) = jobAsCrewOne.jobs(0);
+        assertEq(uint256(status), uint256(JobAsCrewOne.JobStatus.Resolved));
+        assertGt(client.balance, initialBalance);
+    }
+
+    function testWithdrawPlatformFees() public {
+        // Set commission rate first
+        vm.prank(owner);
+        jobAsCrewOne.updateCommissionRate(10);
+        
+        // Setup job and generate fees
+        JobAsCrewOne.Milestone[] memory ms = new JobAsCrewOne.Milestone[](1);
+        ms[0] = JobAsCrewOne.Milestone("Milestone 1", 1 ether, false, false, "");
+        vm.prank(client);
+        jobAsCrewOne.createJob{value: 1 ether}("Test Job", ms, block.timestamp + 7 days);
+        vm.prank(freelancer);
+        jobAsCrewOne.applyToProject(0, "I will do it", 1 ether);
+        vm.prank(client);
+        jobAsCrewOne.selectFreelancer(0, freelancer);
+        vm.prank(freelancer);
+        jobAsCrewOne.completeMilestone(0, "Done");
+        vm.prank(client);
+        jobAsCrewOne.releasePayment(0);
+
+        // Test that platform fees were generated
+        assertGt(jobAsCrewOne.platformFees(), 0);
+    }
+
+    function testEmergencyWithdraw() public {
+        // Setup job and dispute
+        JobAsCrewOne.Milestone[] memory ms = new JobAsCrewOne.Milestone[](1);
+        ms[0] = JobAsCrewOne.Milestone("Milestone 1", 1 ether, false, false, "");
+        vm.prank(client);
+        jobAsCrewOne.createJob{value: 1 ether}("Test Job", ms, block.timestamp + 7 days);
+        vm.prank(freelancer);
+        jobAsCrewOne.applyToProject(0, "I will do it", 1 ether);
+        vm.prank(client);
+        jobAsCrewOne.selectFreelancer(0, freelancer);
+        vm.prank(client);
+        jobAsCrewOne.raiseDispute(0, "Quality issue");
+
+        // Test that dispute was raised
+        ( , , , , , JobAsCrewOne.JobStatus status, , , , , ) = jobAsCrewOne.jobs(0);
+        assertEq(uint256(status), uint256(JobAsCrewOne.JobStatus.Disputed));
+    }
+
+    function testInvalidOperations() public {
+        JobAsCrewOne.Milestone[] memory ms = new JobAsCrewOne.Milestone[](1);
+        ms[0] = JobAsCrewOne.Milestone("Milestone 1", 1 ether, false, false, "");
+        vm.prank(client);
+        jobAsCrewOne.createJob{value: 1 ether}("Test Job", ms, block.timestamp + 7 days);
+
+        // Test invalid freelancer selection
+        vm.prank(client);
+        vm.expectRevert("NotApplied");
+        jobAsCrewOne.selectFreelancer(0, address(0x999));
+
+        // Test invalid milestone completion (wrong caller)
+        vm.prank(client);
+        vm.expectRevert("OnlyFreelancer");
+        jobAsCrewOne.completeMilestone(0, "Done");
+
+        // Test invalid dispute resolution (not a resolver)
+        vm.prank(client);
+        vm.expectRevert("NotResolver");
+        jobAsCrewOne.resolveDispute(0, JobAsCrewOne.Resolution.ClientWon);
+    }
+
+    function testSetContractOwner() public {
+        vm.prank(owner);
+        jobAsCrewOne.setContractOwner(resolver1);
+        assertEq(jobAsCrewOne.owner(), resolver1);
+    }
+
+    function testRemainingFunds() public {
+        JobAsCrewOne.Milestone[] memory ms = new JobAsCrewOne.Milestone[](2);
+        ms[0] = JobAsCrewOne.Milestone("Milestone 1", 0.5 ether, false, false, "");
+        ms[1] = JobAsCrewOne.Milestone("Milestone 2", 0.5 ether, false, false, "");
+        vm.prank(client);
+        jobAsCrewOne.createJob{value: 1 ether}("Test Job", ms, block.timestamp + 7 days);
+
+        assertEq(jobAsCrewOne.remainingFunds(0), 1 ether);
+
+        vm.prank(freelancer);
+        jobAsCrewOne.applyToProject(0, "I will do it", 1 ether);
+        vm.prank(client);
+        jobAsCrewOne.selectFreelancer(0, freelancer);
+        vm.prank(freelancer);
+        jobAsCrewOne.completeMilestone(0, "Done");
+        vm.prank(client);
+        jobAsCrewOne.releasePayment(0);
+
+        assertEq(jobAsCrewOne.remainingFunds(0), 0.5 ether);
+    }
 }

@@ -4,6 +4,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import JobAsCrewOneContext from '@/context/Rcontext';
 import { useWalletAuth } from '@/components/WalletAuthProvider';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import { FaClock, FaMoneyBillWave, FaMapMarkerAlt, FaStar, FaTasks } from 'react-icons/fa';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || 'YOUR_CONTRACT_ADDRESS_HERE';
@@ -201,7 +202,7 @@ const PostAJobPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <div className="min-h-screen bg-background relative overflow-hidden flex flex-col">
       {/* Glow orbs with green and orange gradients */}
       <div className="absolute top-[-10rem] left-[-16rem] w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.32)_0%,_transparent_70%)] z-0" />
       <div className="absolute bottom-[-8rem] right-1/3 w-[32rem] h-[32rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.28)_0%,_transparent_70%)] z-0" />
@@ -214,22 +215,22 @@ const PostAJobPage = () => {
       <div className="absolute top-2/3 right-1/4 w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] z-0" />
       <div className="absolute top-1/4 left-1/4 w-[22rem] h-[22rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] z-0" />
       
-      <div className="relative z-10">
+      <div className="relative z-10 flex flex-col flex-1">
         <Header />
-        <main className="pt-20 px-4 lg:px-28">
+        <main className="flex-1 pt-20 px-4 lg:px-28">
           {authLoading || contractLoading ? (
-            <div className="flex justify-center items-center h-96">
-              <span className="text-lg text-muted-foreground">Loading...</span>
+            <div className="flex-1 flex justify-center items-center">
+              <LoadingSpinner size="lg" text="Initializing..." />
             </div>
           ) : !user || !token ? (
-            <div className="flex flex-col items-center justify-center h-96">
-              <span className="text-lg text-muted-foreground mb-4">Connect your wallet to post a job.</span>
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <LoadingSpinner size="lg" text="Connect your wallet to post a job" />
             </div>
           ) : (
             <>
               {jobsLoading ? (
-                <div className="flex justify-center items-center h-32">
-                  <span className="text-lg text-muted-foreground">Loading jobs...</span>
+                <div className="flex justify-center items-center py-20">
+                  <LoadingSpinner size="md" text="Loading jobs..." />
                 </div>
               ) : jobs.length === 0 ? (
                 <section className="py-20 relative overflow-hidden w-full">
@@ -318,109 +319,148 @@ const PostAJobPage = () => {
                 </section>
               )}
               {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                  <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-2xl relative animate-fade-in">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+                  <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative animate-fade-in">
                     <button
-                      className="absolute top-4 right-4 text-gray-400 hover:text-gray-700"
+                      className="absolute top-6 right-6 text-gray-400 hover:text-gray-700 text-2xl font-bold transition-colors"
                       onClick={() => setShowModal(false)}
                       aria-label="Close"
                     >
                       ×
                     </button>
-                    <h2 className="text-2xl font-bold mb-4">Post a Job</h2>
+                    <div className="mb-6">
+                      <h2 className="text-3xl font-bold text-gray-800 mb-2">Post a New Job</h2>
+                      <p className="text-gray-600">Create a detailed job posting to attract top Web3 talent</p>
+                    </div>
                     <form onSubmit={handleSubmit} className="space-y-6">
-                      <div>
-                        <label className="block font-medium mb-1">Job Title</label>
+                      <div className="space-y-2">
+                        <label className="block font-semibold text-gray-700 mb-2">Job Title *</label>
                         <input
                           type="text"
                           name="title"
                           value={form.title}
                           onChange={handleChange}
-                          className="w-full border rounded-lg px-3 py-2"
+                          className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
+                          placeholder="e.g., Smart Contract Developer for DeFi Protocol"
                           required
                         />
                       </div>
-                      <div>
-                        <label className="block font-medium mb-1">Deadline</label>
+                      <div className="space-y-2">
+                        <label className="block font-semibold text-gray-700 mb-2">Deadline *</label>
                         <input
                           type="date"
                           name="deadline"
                           value={form.deadline}
                           onChange={handleChange}
                           min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                          className="w-full border rounded-lg px-3 py-2"
+                          className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
                           required
                         />
-                        <small className="text-gray-500 text-sm mt-1 block">
-                          Deadline must be at least tomorrow to give freelancers time to apply
+                        <small className="text-gray-500 text-sm block">
+                          ⏰ Deadline must be at least tomorrow to give freelancers time to apply
                         </small>
                       </div>
-                      <div>
-                        <label className="block font-medium mb-1">Milestones</label>
-                        {form.milestones.map((milestone, idx) => (
-                          <div key={idx} className="flex gap-2 mb-2 items-center">
-                            <input
-                              type="text"
-                              name="description"
-                              placeholder="Milestone description"
-                              value={milestone.description}
-                              onChange={e => handleMilestoneChange(idx, e)}
-                              className="flex-1 border rounded-lg px-3 py-2"
-                              required
-                            />
-                            <input
-                              type="number"
-                              name="amount"
-                              placeholder="ETH"
-                              min="0"
-                              step="0.0001"
-                              value={milestone.amount}
-                              onChange={e => handleMilestoneChange(idx, e)}
-                              className="w-32 border rounded-lg px-3 py-2"
-                              required
-                            />
-                            {form.milestones.length > 1 && (
-                              <button
-                                type="button"
-                                className="text-red-500 hover:text-red-700 text-xl px-2"
-                                onClick={() => removeMilestone(idx)}
-                                aria-label="Remove milestone"
-                              >
-                                ×
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                        <button
-                          type="button"
-                          className="text-green-600 mt-2 text-sm underline"
-                          onClick={addMilestone}
-                        >
-                          + Add Milestone
-                        </button>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <label className="block font-semibold text-gray-700">Milestones *</label>
+                          <button
+                            type="button"
+                            className="text-green-600 hover:text-green-700 font-medium text-sm underline transition-colors"
+                            onClick={addMilestone}
+                          >
+                            + Add Milestone
+                          </button>
+                        </div>
+                        <div className="space-y-4">
+                          {form.milestones.map((milestone, idx) => (
+                            <div key={idx} className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-sm font-medium text-gray-600">Milestone {idx + 1}</span>
+                                {form.milestones.length > 1 && (
+                                  <button
+                                    type="button"
+                                    className="text-red-500 hover:text-red-700 text-lg font-bold transition-colors"
+                                    onClick={() => removeMilestone(idx)}
+                                    aria-label="Remove milestone"
+                                  >
+                                    ×
+                                  </button>
+                                )}
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div className="md:col-span-2">
+                                  <input
+                                    type="text"
+                                    name="description"
+                                    placeholder="Milestone description"
+                                    value={milestone.description}
+                                    onChange={e => handleMilestoneChange(idx, e)}
+                                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
+                                    required
+                                  />
+                                </div>
+                                <div>
+                                  <input
+                                    type="number"
+                                    name="amount"
+                                    placeholder="ETH"
+                                    min="0"
+                                    step="0.0001"
+                                    value={milestone.amount}
+                                    onChange={e => handleMilestoneChange(idx, e)}
+                                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
+                                    required
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      {error && <div className="text-red-500 text-sm">{error}</div>}
+                      {error && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                          <div className="flex items-center">
+                            <span className="text-red-600 text-sm font-medium">⚠️ {error}</span>
+                          </div>
+                        </div>
+                      )}
                       <button
                         type="submit"
-                        className="w-full py-3 text-lg font-semibold bg-green-600 text-white rounded-xl flex items-center justify-center hover:bg-green-700"
+                        className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
                         disabled={loading}
                       >
-                        {loading ? 'Posting...' : 'Create Job'}
+                        {loading ? (
+                          <>
+                            <LoadingSpinner size="sm" text="" />
+                            <span>Creating Job...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>🚀 Create Job</span>
+                          </>
+                        )}
                       </button>
                     </form>
                   </div>
                 </div>
               )}
               {showSuccess && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                  <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fade-in">
-                    <h2 className="text-2xl font-bold mb-4 text-green-600">Job Created Successfully!</h2>
-                    <p className="mb-4">Your job has been posted and escrowed on-chain.</p>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+                  <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center animate-fade-in">
+                    <div className="mb-6">
+                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <h2 className="text-2xl font-bold text-green-600 mb-2">Job Created Successfully!</h2>
+                      <p className="text-gray-600">Your job has been posted and escrowed on-chain.</p>
+                    </div>
                     <button
-                      className="w-full py-3 text-lg font-semibold bg-green-600 text-white rounded-xl"
+                      className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl"
                       onClick={() => setShowSuccess(false)}
                     >
-                      Close
+                      🎉 Close
                     </button>
                   </div>
                 </div>

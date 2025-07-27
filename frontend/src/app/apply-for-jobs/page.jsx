@@ -4,6 +4,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import JobAsCrewOneContext from '@/context/Rcontext';
 import { useWalletAuth } from '@/components/WalletAuthProvider';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import DeadlineChecker from '@/components/DeadlineChecker';
 import { 
   FaBriefcase, 
@@ -294,7 +295,7 @@ const ApplyForJobsPage = () => {
   const filteredJobs = jobs.filter(job => job.status === 'open' && (!user || job.client?._id !== user._id));
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <div className="min-h-screen bg-background relative overflow-hidden flex flex-col">
       {/* Glow orbs with green and orange gradients - similar to post-a-job page */}
       <div className="absolute top-[-10rem] left-[-16rem] w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.32)_0%,_transparent_70%)] z-0" />
       <div className="absolute bottom-[-8rem] right-1/3 w-[32rem] h-[32rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.28)_0%,_transparent_70%)] z-0" />
@@ -308,7 +309,7 @@ const ApplyForJobsPage = () => {
       <div className="absolute top-1/4 left-1/4 w-[22rem] h-[22rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] z-0" />
       
       <Header />
-      <main className="pt-20 px-12 lg:px-28">
+      <main className="flex-1 pt-20 px-12 lg:px-28">
         <section className="py-20 relative overflow-hidden w-full">
           {/* Remove this smooth gradient background */}
           {/* <div className="absolute inset-0 bg-gradient-to-br from-success/20 via-background to-accent/20" /> */}
@@ -322,16 +323,16 @@ const ApplyForJobsPage = () => {
               </p>
             </div>
             {authLoading || contractLoading ? (
-              <div className="flex justify-center items-center h-96">
-                <span className="text-lg text-muted-foreground">Loading...</span>
+              <div className="flex-1 flex justify-center items-center">
+                <LoadingSpinner size="lg" text="Initializing..." />
               </div>
             ) : !user || !token ? (
-              <div className="flex flex-col items-center justify-center h-96">
-                <span className="text-lg text-muted-foreground mb-4">Connect your wallet to apply for jobs.</span>
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <LoadingSpinner size="lg" text="Connect your wallet to apply for jobs" />
               </div>
             ) : jobsLoading ? (
-              <div className="flex justify-center items-center h-32">
-                <span className="text-lg text-muted-foreground">Loading jobs...</span>
+              <div className="flex justify-center items-center py-20">
+                <LoadingSpinner size="md" text="Loading jobs..." />
               </div>
             ) : filteredJobs.length === 0 ? (
               <>
@@ -467,46 +468,69 @@ const ApplyForJobsPage = () => {
             )}
             {/* Modal for applying to a job */}
             {showModal && selectedJob && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative animate-fade-in">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+                <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto relative animate-fade-in">
                   <button
-                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-700"
+                    className="absolute top-6 right-6 text-gray-400 hover:text-gray-700 text-2xl font-bold transition-colors"
                     onClick={() => setShowModal(false)}
                     aria-label="Close"
                   >
                     ×
                   </button>
-                  <h2 className="text-2xl font-bold mb-4">Apply for: {selectedJob.title}</h2>
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Apply for: {selectedJob.title}</h2>
+                    <p className="text-gray-600 text-sm">Submit your proposal and bid to get hired</p>
+                  </div>
                   <form onSubmit={handleApply} className="space-y-6">
-                    <div>
-                      <label className="block font-medium mb-1">Proposal</label>
+                    <div className="space-y-2">
+                      <label className="block font-semibold text-gray-700 mb-2">Your Proposal *</label>
                       <textarea
-                        className="w-full border rounded-lg px-3 py-2"
+                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all resize-none"
                         value={proposal}
                         onChange={e => setProposal(e.target.value)}
                         rows={4}
+                        placeholder="Describe your approach, experience, and why you're the best fit for this project..."
                         required
                       />
                     </div>
-                    <div>
-                      <label className="block font-medium mb-1">Bid Amount (ETH)</label>
+                    <div className="space-y-2">
+                      <label className="block font-semibold text-gray-700 mb-2">Bid Amount (ETH) *</label>
                       <input
                         type="number"
-                        className="w-full border rounded-lg px-3 py-2"
+                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
                         value={bidAmount}
                         onChange={e => setBidAmount(e.target.value)}
                         min="0"
                         step="0.0001"
+                        placeholder="0.0"
                         required
                       />
+                      <small className="text-gray-500 text-sm block">
+                        💰 Make sure your bid is competitive and reflects the work required
+                      </small>
                     </div>
-                    {applyError && <div className="text-red-500 text-sm">{applyError}</div>}
+                    {applyError && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex items-center">
+                          <span className="text-red-600 text-sm font-medium">⚠️ {applyError}</span>
+                        </div>
+                      </div>
+                    )}
                     <button
                       type="submit"
-                      className="btn-primary w-full py-3 text-lg font-semibold rounded-xl flex items-center justify-center"
+                      className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
                       disabled={applyLoading}
                     >
-                      {applyLoading ? 'Applying...' : 'Submit Application'}
+                      {applyLoading ? (
+                        <>
+                          <LoadingSpinner size="sm" text="" />
+                          <span>Submitting Application...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>📤 Submit Application</span>
+                        </>
+                      )}
                     </button>
                   </form>
                 </div>
@@ -514,15 +538,22 @@ const ApplyForJobsPage = () => {
             )}
             {/* Success Modal */}
             {applySuccess && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fade-in">
-                  <h2 className="text-2xl font-bold mb-4 text-green-600">Application Submitted!</h2>
-                  <p className="mb-4">Your application has been submitted on-chain.</p>
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+                <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center animate-fade-in">
+                  <div className="mb-6">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <h2 className="text-2xl font-bold text-green-600 mb-2">Application Submitted!</h2>
+                    <p className="text-gray-600">Your application has been submitted on-chain successfully.</p>
+                  </div>
                   <button
-                    className="btn-primary w-full py-3 text-lg font-semibold rounded-xl"
+                    className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl"
                     onClick={() => setApplySuccess(false)}
                   >
-                    Close
+                    🎉 Close
                   </button>
                 </div>
               </div>

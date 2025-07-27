@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useWalletAuth } from "@/components/WalletAuthProvider";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import {
   Briefcase,
   DollarSign,
@@ -305,10 +306,10 @@ const Dashboard = () => {
 
   if (authLoading || dashboardLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <Header />
-        <main className="pt-20 flex items-center justify-center">
-          <span className="text-lg text-muted-foreground">Loading dashboard...</span>
+        <main className="flex-1 flex items-center justify-center">
+          <LoadingSpinner size="lg" text="Loading dashboard..." />
         </main>
         <Footer />
       </div>
@@ -370,7 +371,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
       <main className="pt-20">
         <section className="py-12 px-12 lg:px-28 relative overflow-hidden w-full">
