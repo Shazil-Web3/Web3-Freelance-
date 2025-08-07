@@ -187,6 +187,10 @@ exports.getUserDisputes = async (req, res) => {
 exports.getAllDisputes = async (req, res) => {
   try {
     // Check if user is a dispute resolver
+    if (!req.user || !req.user.walletAddress) {
+      return res.status(400).json({ message: 'User wallet address not found' });
+    }
+    
     const walletAddress = req.user.walletAddress.toLowerCase();
     const isResolver = await contract.disputeResolvers(walletAddress);
     console.log('Dispute resolver check:', { walletAddress, isResolver, userId: req.user.id });
@@ -194,6 +198,20 @@ exports.getAllDisputes = async (req, res) => {
     if (!isResolver) {
       return res.status(403).json({ message: 'Only dispute resolvers can view all disputes' });
     }
+
+    // Get all disputes first to see what we have
+    const allDisputes = await Dispute.find({})
+      .populate('job', 'title contractJobId status budget')
+      .populate('client', 'username walletAddress')
+      .populate('freelancer', 'username walletAddress')
+      .populate('projectSubmission', 'files')
+      .sort({ createdAt: -1 });
+
+    console.log('All disputes before filtering:', allDisputes.map(d => ({
+      id: d._id,
+      title: d.title,
+      status: d.status
+    })));
 
     // Get all disputes that are NOT resolved (filter out resolved disputes)
     const disputes = await Dispute.find({

@@ -4,6 +4,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import JobAsCrewOneContext from '@/context/Rcontext';
 import { useWalletAuth } from '@/components/WalletAuthProvider';
+import { WalletConnectionChecker } from '@/components/WalletConnectionChecker';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import DeadlineChecker from '@/components/DeadlineChecker';
 import { 
@@ -95,18 +96,12 @@ const ApplyForJobsPage = () => {
         }
       });
       
-      console.log('Fetch applications response status:', res.status);
-      console.log('Fetch applications response headers:', res.headers);
-      
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error('Backend error response:', errorText);
-        setUserApplications([]);
-        return;
+      if (res.ok) {
+        const data = await res.json();
+        setUserApplications(data.applications || []);
+      } else {
+        // Handle error silently
       }
-      
-      const data = await res.json();
-      setUserApplications(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch user applications:', err);
       console.error('Error details:', err.message);
@@ -193,23 +188,6 @@ const ApplyForJobsPage = () => {
       const contractJob = await activeContract.getJob(jobId);
       const blockchainDeadline = Number(contractJob.deadline);
       
-      console.log('=== DEBUG DEADLINE CHECK ===');
-      console.log('Job ID:', jobId);
-      console.log('Selected Job from DB:', selectedJob);
-      console.log('Contract Job from Blockchain:', contractJob);
-      console.log('---');
-      console.log('Current timestamp:', now);
-      console.log('Blockchain deadline timestamp:', blockchainDeadline);
-      console.log('DB deadline (original):', selectedJob.deadline);
-      console.log('---');
-      console.log('Current date:', new Date(now * 1000).toISOString());
-      console.log('Blockchain deadline date:', new Date(blockchainDeadline * 1000).toISOString());
-      console.log('DB deadline date:', new Date(selectedJob.deadline).toISOString());
-      console.log('---');
-      console.log('Time difference (seconds):', blockchainDeadline - now);
-      console.log('Is deadline zero/invalid?', blockchainDeadline === 0 || blockchainDeadline < 1000000000);
-      console.log('===============================');
-      
       if (now > blockchainDeadline) {
         throw new Error(`This job's deadline has passed. Current: ${new Date(now * 1000).toLocaleString()}, Deadline: ${new Date(blockchainDeadline * 1000).toLocaleString()}`);
       }
@@ -234,14 +212,6 @@ const ApplyForJobsPage = () => {
       }
       
       // Create application record in database
-      console.log('Creating application with data:', {
-        job: selectedJob._id,
-        freelancer: user._id,
-        proposal: proposal,
-        fee: numericBidAmount,
-        status: 'pending'
-      });
-      
       const applicationRes = await fetch(`${BACKEND_URL}/api/applications`, {
         method: 'POST',
         headers: {
@@ -256,8 +226,6 @@ const ApplyForJobsPage = () => {
           status: 'pending'
         })
       });
-      
-      console.log('Application creation response status:', applicationRes.status);
       
       if (!applicationRes.ok) {
         const errorText = await applicationRes.text();
@@ -295,274 +263,276 @@ const ApplyForJobsPage = () => {
   const filteredJobs = jobs.filter(job => job.status === 'open' && (!user || job.client?._id !== user._id));
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden flex flex-col">
-      {/* Glow orbs with green and orange gradients - similar to post-a-job page */}
-      <div className="absolute top-[-10rem] left-[-16rem] w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.32)_0%,_transparent_70%)] z-0" />
-      <div className="absolute bottom-[-8rem] right-1/3 w-[32rem] h-[32rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.28)_0%,_transparent_70%)] z-0" />
-      <div className="absolute top-[-6rem] right-[-12rem] w-[24rem] h-[24rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.22)_0%,_transparent_70%)] z-0" />
-      <div className="absolute bottom-1/3 left-[-10rem] w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.18)_0%,_transparent_70%)] z-0" />
-      
-      {/* Middle positioned orbs */}
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.15)_0%,_transparent_70%)] z-0" />
-      <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 w-[24rem] h-[24rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.12)_0%,_transparent_70%)] z-0" />
-      <div className="absolute top-2/3 right-1/4 w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] z-0" />
-      <div className="absolute top-1/4 left-1/4 w-[22rem] h-[22rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] z-0" />
-      
-      <Header />
-      <main className="flex-1 pt-20 px-12 lg:px-28">
-        <section className="py-20 relative overflow-hidden w-full">
-          {/* Remove this smooth gradient background */}
-          {/* <div className="absolute inset-0 bg-gradient-to-br from-success/20 via-background to-accent/20" /> */}
-          <div className="container mx-auto relative z-10">
-            <div className="text-center mb-14">
-              <h1 className="text-5xl lg:text-6xl font-bold mb-4">
-                Apply for a <span className="text-gradient-green">Job</span>
-              </h1>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Discover exciting Web3 projects and take the next step in your freelance career.
-              </p>
-            </div>
-            {authLoading || contractLoading ? (
-              <div className="flex-1 flex justify-center items-center">
-                <LoadingSpinner size="lg" text="Initializing..." />
+    <WalletConnectionChecker requireConnection={true}>
+      <div className="min-h-screen bg-background relative overflow-hidden flex flex-col">
+        {/* Glow orbs with green and orange gradients - similar to post-a-job page */}
+        <div className="absolute top-[-10rem] left-[-16rem] w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.32)_0%,_transparent_70%)] z-0" />
+        <div className="absolute bottom-[-8rem] right-1/3 w-[32rem] h-[32rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.28)_0%,_transparent_70%)] z-0" />
+        <div className="absolute top-[-6rem] right-[-12rem] w-[24rem] h-[24rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.22)_0%,_transparent_70%)] z-0" />
+        <div className="absolute bottom-1/3 left-[-10rem] w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.18)_0%,_transparent_70%)] z-0" />
+        
+        {/* Middle positioned orbs */}
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.15)_0%,_transparent_70%)] z-0" />
+        <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 w-[24rem] h-[24rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.12)_0%,_transparent_70%)] z-0" />
+        <div className="absolute top-2/3 right-1/4 w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] z-0" />
+        <div className="absolute top-1/4 left-1/4 w-[22rem] h-[22rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] z-0" />
+        
+        <Header />
+        <main className="flex-1 pt-20 px-12 lg:px-28">
+          <section className="py-20 relative overflow-hidden w-full">
+            {/* Remove this smooth gradient background */}
+            {/* <div className="absolute inset-0 bg-gradient-to-br from-success/20 via-background to-accent/20" /> */}
+            <div className="container mx-auto relative z-10">
+              <div className="text-center mb-14">
+                <h1 className="text-5xl lg:text-6xl font-bold mb-4">
+                  Apply for a <span className="text-gradient-green">Job</span>
+                </h1>
+                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                  Discover exciting Web3 projects and take the next step in your freelance career.
+                </p>
               </div>
-            ) : !user || !token ? (
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <LoadingSpinner size="lg" text="Connect your wallet to apply for jobs" />
-              </div>
-            ) : jobsLoading ? (
-              <div className="flex justify-center items-center py-20">
-                <LoadingSpinner size="md" text="Loading jobs..." />
-              </div>
-            ) : filteredJobs.length === 0 ? (
-              <>
-                <DeadlineChecker />
-                <div className="text-center text-muted-foreground py-20">No jobs available to apply for at the moment.</div>
-              </>
-            ) : (
-              <>
-                <DeadlineChecker />
-              <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2">
-                {filteredJobs.map(job => {
-                  const userApplied = hasUserApplied(job._id);
-                  const applicationStatus = getApplicationStatus(job._id);
-                  const totalBudget = Array.isArray(job.milestones) ? job.milestones.reduce((sum, ms) => sum + parseFloat(ms.amount || 0), 0) : 0;
-                  
-                  return (
-                    <div key={job._id} className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200 hover:border-green-300">
-                      {/* Header with job title and client info */}
-                      <div className="p-6 border-b border-gray-100">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="p-2 bg-green-100 rounded-lg">
-                                <FaBriefcase className="text-green-600 text-lg" />
+              {authLoading || contractLoading ? (
+                <div className="flex-1 flex justify-center items-center">
+                  <LoadingSpinner size="lg" text="Initializing..." />
+                </div>
+              ) : !user || !token ? (
+                <div className="flex-1 flex flex-col items-center justify-center">
+                  <LoadingSpinner size="lg" text="Connect your wallet to apply for jobs" />
+                </div>
+              ) : jobsLoading ? (
+                <div className="flex justify-center items-center py-20">
+                  <LoadingSpinner size="md" text="Loading jobs..." />
+                </div>
+              ) : filteredJobs.length === 0 ? (
+                <>
+                  <DeadlineChecker />
+                  <div className="text-center text-muted-foreground py-20">No jobs available to apply for at the moment.</div>
+                </>
+              ) : (
+                <>
+                  <DeadlineChecker />
+                <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2">
+                  {filteredJobs.map(job => {
+                    const userApplied = hasUserApplied(job._id);
+                    const applicationStatus = getApplicationStatus(job._id);
+                    const totalBudget = Array.isArray(job.milestones) ? job.milestones.reduce((sum, ms) => sum + parseFloat(ms.amount || 0), 0) : 0;
+                    
+                    return (
+                      <div key={job._id} className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200 hover:border-green-300">
+                        {/* Header with job title and client info */}
+                        <div className="p-6 border-b border-gray-100">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-green-100 rounded-lg">
+                                  <FaBriefcase className="text-green-600 text-lg" />
+                                </div>
+                                <h2 className="text-xl font-bold text-gray-800 group-hover:text-green-600 transition-colors">
+                                  {job.title}
+                                </h2>
                               </div>
-                              <h2 className="text-xl font-bold text-gray-800 group-hover:text-green-600 transition-colors">
-                                {job.title}
-                              </h2>
+                              
+                              <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                                <div className="flex items-center gap-1">
+                                  <FaUser className="text-gray-400" />
+                                  <span>{job.client?.username || job.client?.walletAddress?.slice(0, 8) + '...'}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <FaCalendarAlt className="text-gray-400" />
+                                  <span>{formatDeadline(job.deadline)}</span>
+                                </div>
+                              </div>
                             </div>
                             
-                            <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                              <div className="flex items-center gap-1">
-                                <FaUser className="text-gray-400" />
-                                <span>{job.client?.username || job.client?.walletAddress?.slice(0, 8) + '...'}</span>
+                            {/* Application status indicator */}
+                            {userApplied && (
+                              <div className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                                <FaCheckCircle className="text-xs" />
+                                <span>Applied</span>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <FaCalendarAlt className="text-gray-400" />
-                                <span>{formatDeadline(job.deadline)}</span>
-                              </div>
-                            </div>
+                            )}
                           </div>
                           
-                          {/* Application status indicator */}
-                          {userApplied && (
-                            <div className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                              <FaCheckCircle className="text-xs" />
-                              <span>Applied</span>
-                            </div>
+                          {/* Job description if available */}
+                          {job.description && (
+                            <p className="text-gray-600 text-sm line-clamp-2 mb-3">
+                              {job.description}
+                            </p>
                           )}
                         </div>
                         
-                        {/* Job description if available */}
-                        {job.description && (
-                          <p className="text-gray-600 text-sm line-clamp-2 mb-3">
-                            {job.description}
-                          </p>
+                        {/* Milestones section */}
+                        {Array.isArray(job.milestones) && job.milestones.length > 0 && (
+                          <div className="p-6 border-b border-gray-100">
+                            <div className="flex items-center gap-2 mb-4">
+                              <FaTasks className="text-green-600" />
+                              <span className="font-semibold text-gray-800">Milestones ({job.milestones.length})</span>
+                            </div>
+                            <div className="space-y-3 max-h-48 overflow-y-auto">
+                              {job.milestones.map((ms, i) => (
+                                <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-500 text-white font-bold text-xs flex-shrink-0 mt-0.5">
+                                    {i + 1}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-gray-800 text-sm truncate">
+                                      {ms.title || ms.description}
+                                    </div>
+                                    <div className="flex items-center gap-1 mt-1">
+                                      <FaEthereum className="text-blue-500 text-xs" />
+                                      <span className="text-blue-600 font-semibold text-sm">{ms.amount} ETH</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         )}
-                      </div>
-                      
-                      {/* Milestones section */}
-                      {Array.isArray(job.milestones) && job.milestones.length > 0 && (
-                        <div className="p-6 border-b border-gray-100">
-                          <div className="flex items-center gap-2 mb-4">
-                            <FaTasks className="text-green-600" />
-                            <span className="font-semibold text-gray-800">Milestones ({job.milestones.length})</span>
-                          </div>
-                          <div className="space-y-3 max-h-48 overflow-y-auto">
-                            {job.milestones.map((ms, i) => (
-                              <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-500 text-white font-bold text-xs flex-shrink-0 mt-0.5">
-                                  {i + 1}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium text-gray-800 text-sm truncate">
-                                    {ms.title || ms.description}
-                                  </div>
-                                  <div className="flex items-center gap-1 mt-1">
-                                    <FaEthereum className="text-blue-500 text-xs" />
-                                    <span className="text-blue-600 font-semibold text-sm">{ms.amount} ETH</span>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Footer with budget and apply button */}
-                      <div className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <FaEthereum className="text-blue-500" />
-                            <span className="text-lg font-bold text-gray-800">
-                              {totalBudget.toFixed(4)} ETH
-                            </span>
-                            <span className="text-sm text-gray-500">Total Budget</span>
+                        
+                        {/* Footer with budget and apply button */}
+                        <div className="p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                              <FaEthereum className="text-blue-500" />
+                              <span className="text-lg font-bold text-gray-800">
+                                {totalBudget.toFixed(4)} ETH
+                              </span>
+                              <span className="text-sm text-gray-500">Total Budget</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-1 text-sm text-gray-500">
+                              <FaClock className="text-xs" />
+                              <span>Posted {new Date(job.createdAt).toLocaleDateString()}</span>
+                            </div>
                           </div>
                           
-                          <div className="flex items-center gap-1 text-sm text-gray-500">
-                            <FaClock className="text-xs" />
-                            <span>Posted {new Date(job.createdAt).toLocaleDateString()}</span>
-                          </div>
+                          {userApplied ? (
+                            <div className="w-full">
+                              <button 
+                                className="w-full py-3 px-4 bg-green-100 text-green-700 rounded-xl font-semibold cursor-not-allowed flex items-center justify-center gap-2"
+                                disabled
+                              >
+                                <FaCheckCircle />
+                                <span>Applied ({applicationStatus || 'pending'})</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleApplyClick(job)}
+                              className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 group"
+                            >
+                              <FaPaperPlane className="group-hover:translate-x-1 transition-transform" />
+                              <span>Apply Now</span>
+                            </button>
+                          )}
                         </div>
                         
-                        {userApplied ? (
-                          <div className="w-full">
-                            <button 
-                              className="w-full py-3 px-4 bg-green-100 text-green-700 rounded-xl font-semibold cursor-not-allowed flex items-center justify-center gap-2"
-                              disabled
-                            >
-                              <FaCheckCircle />
-                              <span>Applied ({applicationStatus || 'pending'})</span>
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => handleApplyClick(job)}
-                            className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 group"
-                          >
-                            <FaPaperPlane className="group-hover:translate-x-1 transition-transform" />
-                            <span>Apply Now</span>
-                          </button>
-                        )}
+                        {/* Hover overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 to-blue-500/0 group-hover:from-green-500/5 group-hover:to-blue-500/5 transition-all duration-300 pointer-events-none" />
                       </div>
-                      
-                      {/* Hover overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 to-blue-500/0 group-hover:from-green-500/5 group-hover:to-blue-500/5 transition-all duration-300 pointer-events-none" />
-                    </div>
-                  );
-                })}
-              </div>
-              </>
-            )}
-            {/* Modal for applying to a job */}
-            {showModal && selectedJob && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-                <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto relative animate-fade-in">
-                  <button
-                    className="absolute top-6 right-6 text-gray-400 hover:text-gray-700 text-2xl font-bold transition-colors"
-                    onClick={() => setShowModal(false)}
-                    aria-label="Close"
-                  >
-                    ×
-                  </button>
-                  <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Apply for: {selectedJob.title}</h2>
-                    <p className="text-gray-600 text-sm">Submit your proposal and bid to get hired</p>
-                  </div>
-                  <form onSubmit={handleApply} className="space-y-6">
-                    <div className="space-y-2">
-                      <label className="block font-semibold text-gray-700 mb-2">Your Proposal *</label>
-                      <textarea
-                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all resize-none"
-                        value={proposal}
-                        onChange={e => setProposal(e.target.value)}
-                        rows={4}
-                        placeholder="Describe your approach, experience, and why you're the best fit for this project..."
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block font-semibold text-gray-700 mb-2">Bid Amount (ETH) *</label>
-                      <input
-                        type="number"
-                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
-                        value={bidAmount}
-                        onChange={e => setBidAmount(e.target.value)}
-                        min="0"
-                        step="0.0001"
-                        placeholder="0.0"
-                        required
-                      />
-                      <small className="text-gray-500 text-sm block">
-                        💰 Make sure your bid is competitive and reflects the work required
-                      </small>
-                    </div>
-                    {applyError && (
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                        <div className="flex items-center">
-                          <span className="text-red-600 text-sm font-medium">⚠️ {applyError}</span>
-                        </div>
-                      </div>
-                    )}
+                    );
+                  })}
+                </div>
+                </>
+              )}
+              {/* Modal for applying to a job */}
+              {showModal && selectedJob && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+                  <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto relative animate-fade-in">
                     <button
-                      type="submit"
-                      className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
-                      disabled={applyLoading}
+                      className="absolute top-6 right-6 text-gray-400 hover:text-gray-700 text-2xl font-bold transition-colors"
+                      onClick={() => setShowModal(false)}
+                      aria-label="Close"
                     >
-                      {applyLoading ? (
-                        <>
-                          <LoadingSpinner size="sm" text="" />
-                          <span>Submitting Application...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>📤 Submit Application</span>
-                        </>
-                      )}
+                      ×
                     </button>
-                  </form>
-                </div>
-              </div>
-            )}
-            {/* Success Modal */}
-            {applySuccess && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-                <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center animate-fade-in">
-                  <div className="mb-6">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-bold text-gray-800 mb-2">Apply for: {selectedJob.title}</h2>
+                      <p className="text-gray-600 text-sm">Submit your proposal and bid to get hired</p>
                     </div>
-                    <h2 className="text-2xl font-bold text-green-600 mb-2">Application Submitted!</h2>
-                    <p className="text-gray-600">Your application has been submitted on-chain successfully.</p>
+                    <form onSubmit={handleApply} className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="block font-semibold text-gray-700 mb-2">Your Proposal *</label>
+                        <textarea
+                          className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all resize-none"
+                          value={proposal}
+                          onChange={e => setProposal(e.target.value)}
+                          rows={4}
+                          placeholder="Describe your approach, experience, and why you're the best fit for this project..."
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block font-semibold text-gray-700 mb-2">Bid Amount (ETH) *</label>
+                        <input
+                          type="number"
+                          className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
+                          value={bidAmount}
+                          onChange={e => setBidAmount(e.target.value)}
+                          min="0"
+                          step="0.0001"
+                          placeholder="0.0"
+                          required
+                        />
+                        <small className="text-gray-500 text-sm block">
+                          💰 Make sure your bid is competitive and reflects the work required
+                        </small>
+                      </div>
+                      {applyError && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                          <div className="flex items-center">
+                            <span className="text-red-600 text-sm font-medium">⚠️ {applyError}</span>
+                          </div>
+                        </div>
+                      )}
+                      <button
+                        type="submit"
+                        className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                        disabled={applyLoading}
+                      >
+                        {applyLoading ? (
+                          <>
+                            <LoadingSpinner size="sm" text="" />
+                            <span>Submitting Application...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>📤 Submit Application</span>
+                          </>
+                        )}
+                      </button>
+                    </form>
                   </div>
-                  <button
-                    className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl"
-                    onClick={() => setApplySuccess(false)}
-                  >
-                    🎉 Close
-                  </button>
                 </div>
-              </div>
-            )}
-          </div>
-        </section>
-      </main>
-      <Footer />
-    </div>
+              )}
+              {/* Success Modal */}
+              {applySuccess && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+                  <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center animate-fade-in">
+                    <div className="mb-6">
+                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <h2 className="text-2xl font-bold text-green-600 mb-2">Application Submitted!</h2>
+                      <p className="text-gray-600">Your application has been submitted on-chain successfully.</p>
+                    </div>
+                    <button
+                      className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl"
+                      onClick={() => setApplySuccess(false)}
+                    >
+                      🎉 Close
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        </main>
+        <Footer />
+      </div>
+    </WalletConnectionChecker>
   );
 };
 

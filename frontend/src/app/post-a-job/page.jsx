@@ -4,6 +4,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import JobAsCrewOneContext from '@/context/Rcontext';
 import { useWalletAuth } from '@/components/WalletAuthProvider';
+import { WalletConnectionChecker } from '@/components/WalletConnectionChecker';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { FaClock, FaMoneyBillWave, FaMapMarkerAlt, FaStar, FaTasks } from 'react-icons/fa';
 
@@ -134,6 +135,7 @@ const PostAJobPage = () => {
       
       const deadlineTimestamp = Math.floor(endOfDay.getTime() / 1000);
       const currentTimestamp = Math.floor(now / 1000);
+      const timeDifference = deadlineTimestamp - currentTimestamp;
       
       // Validation: ensure deadline timestamp is reasonable (not too far in future, not in past)
       const minTimestamp = currentTimestamp;
@@ -150,13 +152,6 @@ const PostAJobPage = () => {
         setLoading(false);
         return;
       }
-      
-      console.log('Current time:', new Date(now).toISOString());
-      console.log('Selected deadline:', selectedDeadline.toISOString());
-      console.log('End of day deadline:', endOfDay.toISOString());
-      console.log('Current timestamp (seconds):', currentTimestamp);
-      console.log('Deadline timestamp (seconds):', deadlineTimestamp);
-      console.log('Time difference (seconds):', deadlineTimestamp - currentTimestamp);
       
       // Create job on blockchain and get the contract job ID
       const result = await contract.createJob(form.title, milestones, deadlineTimestamp);
@@ -202,275 +197,277 @@ const PostAJobPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden flex flex-col">
-      {/* Glow orbs with green and orange gradients */}
-      <div className="absolute top-[-10rem] left-[-16rem] w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.32)_0%,_transparent_70%)] z-0" />
-      <div className="absolute bottom-[-8rem] right-1/3 w-[32rem] h-[32rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.28)_0%,_transparent_70%)] z-0" />
-      <div className="absolute top-[-6rem] right-[-12rem] w-[24rem] h-[24rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.22)_0%,_transparent_70%)] z-0" />
-      <div className="absolute bottom-1/3 left-[-10rem] w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.18)_0%,_transparent_70%)] z-0" />
-      
-      {/* New middle positioned orbs */}
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.15)_0%,_transparent_70%)] z-0" />
-      <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 w-[24rem] h-[24rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.12)_0%,_transparent_70%)] z-0" />
-      <div className="absolute top-2/3 right-1/4 w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] z-0" />
-      <div className="absolute top-1/4 left-1/4 w-[22rem] h-[22rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] z-0" />
-      
-      <div className="relative z-10 flex flex-col flex-1">
-        <Header />
-        <main className="flex-1 pt-20 px-4 lg:px-28">
-          {authLoading || contractLoading ? (
-            <div className="flex-1 flex justify-center items-center">
-              <LoadingSpinner size="lg" text="Initializing..." />
-            </div>
-          ) : !user || !token ? (
-            <div className="flex-1 flex flex-col items-center justify-center">
-              <LoadingSpinner size="lg" text="Connect your wallet to post a job" />
-            </div>
-          ) : (
-            <>
-              {jobsLoading ? (
-                <div className="flex justify-center items-center py-20">
-                  <LoadingSpinner size="md" text="Loading jobs..." />
-                </div>
-              ) : jobs.length === 0 ? (
-                <section className="py-20 relative overflow-hidden w-full">
-                  <div className="container mx-auto relative z-10">
-                    <div className="text-center mb-14">
-                      <h1 className="text-5xl lg:text-6xl font-bold mb-4">
-                        Post a <span className="text-green-600">Job</span>
-                      </h1>
-                      <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                        Connect with top Web3 talent by posting your project. Find the perfect freelancer for your needs.
-                      </p>
-                    </div>
-                    <div className="grid gap-8 max-w-2xl mx-auto">
-                      <div className="p-8 bg-white shadow-lg rounded-2xl">
-                        <h2 className="text-2xl font-bold mb-2">How it Works</h2>
-                        <ul className="list-disc list-inside text-muted-foreground space-y-2">
-                          <li>Describe your project and required skills.</li>
-                          <li>Set your budget and timeline.</li>
-                          <li>Review applications from vetted freelancers.</li>
-                          <li>Hire and collaborate securely via smart contracts.</li>
-                        </ul>
-                        <button
-                          className="mt-6 w-full py-3 text-lg font-semibold bg-green-600 text-white rounded-xl hover:bg-green-700"
-                          onClick={() => setShowModal(true)}
-                        >
-                          Start Posting
-                        </button>
-                      </div>
-                    </div>
+    <WalletConnectionChecker requireConnection={true}>
+      <div className="min-h-screen bg-background relative overflow-hidden flex flex-col">
+        {/* Glow orbs with green and orange gradients */}
+        <div className="absolute top-[-10rem] left-[-16rem] w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.32)_0%,_transparent_70%)] z-0" />
+        <div className="absolute bottom-[-8rem] right-1/3 w-[32rem] h-[32rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.28)_0%,_transparent_70%)] z-0" />
+        <div className="absolute top-[-6rem] right-[-12rem] w-[24rem] h-[24rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.22)_0%,_transparent_70%)] z-0" />
+        <div className="absolute bottom-1/3 left-[-10rem] w-[20rem] h-[20rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.18)_0%,_transparent_70%)] z-0" />
+        
+        {/* New middle positioned orbs */}
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.15)_0%,_transparent_70%)] z-0" />
+        <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 w-[24rem] h-[24rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.12)_0%,_transparent_70%)] z-0" />
+        <div className="absolute top-2/3 right-1/4 w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.18)_0%,_transparent_70%)] z-0" />
+        <div className="absolute top-1/4 left-1/4 w-[22rem] h-[22rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.14)_0%,_transparent_70%)] z-0" />
+        
+        <div className="relative z-10 flex flex-col flex-1">
+          <Header />
+          <main className="flex-1 pt-20 px-4 lg:px-28">
+            {authLoading || contractLoading ? (
+              <div className="flex-1 flex justify-center items-center">
+                <LoadingSpinner size="lg" text="Initializing..." />
+              </div>
+            ) : !user || !token ? (
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <LoadingSpinner size="lg" text="Connect your wallet to post a job" />
+              </div>
+            ) : (
+              <>
+                {jobsLoading ? (
+                  <div className="flex justify-center items-center py-20">
+                    <LoadingSpinner size="md" text="Loading jobs..." />
                   </div>
-                </section>
-              ) : (
-                <section className="w-full">
-                  <div className="flex justify-between items-center mb-10">
-                    <h1 className="text-5xl lg:text-7xl font-bold text-green-600">Your Jobs</h1>
-                    <button
-                      className="py-3 px-8 text-xl font-semibold bg-green-600 text-white rounded-2xl shadow-lg hover:bg-green-700"
-                      onClick={() => setShowModal(true)}
-                    >
-                      + Post Job
-                    </button>
-                  </div>
-                  <div className="grid gap-6">
-                    {jobs.map(job => (
-                      <div
-                        key={job._id}
-                        className="bg-white p-8 rounded-2xl border border-gray-200 shadow-md card-floating transition-shadow duration-300 hover:shadow-2xl hover:border-green-400 group"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h2 className="text-2xl font-bold text-green-700 flex items-center mb-2">
-                              <FaStar className="mr-2 text-yellow-500" /> Title: {job.title}
-                            </h2>
-                            <div className="text-gray-600 flex items-center mt-2 text-lg">
-                              <FaClock className="mr-2" /> Status: <span className="font-medium text-orange-600 ml-1">{job.status || 'open'}</span>
-                            </div>
-                            <div className="text-gray-600 flex items-center mt-1 text-lg">
-                              <FaClock className="mr-2" /> Deadline: <span className="font-medium ml-1">{formatDeadline(job.deadline)}</span>
-                            </div>
-                            {Array.isArray(job.milestones) && job.milestones.length > 0 && (
-                              <div className="mt-4">
-                                <h3 className="text-lg font-semibold text-green-700 flex items-center mb-2">
-                                  <FaTasks className="mr-2 text-green-600" /> Milestones
-                                </h3>
-                                <div className="mt-2 space-y-2">
-                                  {job.milestones.map((ms, i) => (
-                                    <div key={i} className="flex flex-col md:flex-row md:items-center md:gap-4 bg-gray-50 p-3 rounded-lg border border-gray-100 group-hover:border-green-200 transition">
-                                      <span className="text-gray-700 font-medium text-base flex-1">{ms.title || ms.description}</span>
-                                      <span className="text-orange-600 font-semibold text-base mt-1 md:mt-0 flex items-center">
-                                        <FaTasks className="mr-1 text-green-500" /> {ms.amount} ETH
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <span className="text-yellow-500 font-bold text-xl">4.9 ★</span>
-                            <p className="text-gray-500 text-sm mt-1">$900K+ spent</p>
-                          </div>
-                        </div>
+                ) : jobs.length === 0 ? (
+                  <section className="py-20 relative overflow-hidden w-full">
+                    <div className="container mx-auto relative z-10">
+                      <div className="text-center mb-14">
+                        <h1 className="text-5xl lg:text-6xl font-bold mb-4">
+                          Post a <span className="text-green-600">Job</span>
+                        </h1>
+                        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                          Connect with top Web3 talent by posting your project. Find the perfect freelancer for your needs.
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-              {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-                  <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative animate-fade-in">
-                    <button
-                      className="absolute top-6 right-6 text-gray-400 hover:text-gray-700 text-2xl font-bold transition-colors"
-                      onClick={() => setShowModal(false)}
-                      aria-label="Close"
-                    >
-                      ×
-                    </button>
-                    <div className="mb-6">
-                      <h2 className="text-3xl font-bold text-gray-800 mb-2">Post a New Job</h2>
-                      <p className="text-gray-600">Create a detailed job posting to attract top Web3 talent</p>
-                    </div>
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                      <div className="space-y-2">
-                        <label className="block font-semibold text-gray-700 mb-2">Job Title *</label>
-                        <input
-                          type="text"
-                          name="title"
-                          value={form.title}
-                          onChange={handleChange}
-                          className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
-                          placeholder="e.g., Smart Contract Developer for DeFi Protocol"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="block font-semibold text-gray-700 mb-2">Deadline *</label>
-                        <input
-                          type="date"
-                          name="deadline"
-                          value={form.deadline}
-                          onChange={handleChange}
-                          min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                          className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
-                          required
-                        />
-                        <small className="text-gray-500 text-sm block">
-                          ⏰ Deadline must be at least tomorrow to give freelancers time to apply
-                        </small>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <label className="block font-semibold text-gray-700">Milestones *</label>
+                      <div className="grid gap-8 max-w-2xl mx-auto">
+                        <div className="p-8 bg-white shadow-lg rounded-2xl">
+                          <h2 className="text-2xl font-bold mb-2">How it Works</h2>
+                          <ul className="list-disc list-inside text-muted-foreground space-y-2">
+                            <li>Describe your project and required skills.</li>
+                            <li>Set your budget and timeline.</li>
+                            <li>Review applications from vetted freelancers.</li>
+                            <li>Hire and collaborate securely via smart contracts.</li>
+                          </ul>
                           <button
-                            type="button"
-                            className="text-green-600 hover:text-green-700 font-medium text-sm underline transition-colors"
-                            onClick={addMilestone}
+                            className="mt-6 w-full py-3 text-lg font-semibold bg-green-600 text-white rounded-xl hover:bg-green-700"
+                            onClick={() => setShowModal(true)}
                           >
-                            + Add Milestone
+                            Start Posting
                           </button>
                         </div>
-                        <div className="space-y-4">
-                          {form.milestones.map((milestone, idx) => (
-                            <div key={idx} className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                              <div className="flex items-center justify-between mb-3">
-                                <span className="text-sm font-medium text-gray-600">Milestone {idx + 1}</span>
-                                {form.milestones.length > 1 && (
-                                  <button
-                                    type="button"
-                                    className="text-red-500 hover:text-red-700 text-lg font-bold transition-colors"
-                                    onClick={() => removeMilestone(idx)}
-                                    aria-label="Remove milestone"
-                                  >
-                                    ×
-                                  </button>
-                                )}
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div className="md:col-span-2">
-                                  <input
-                                    type="text"
-                                    name="description"
-                                    placeholder="Milestone description"
-                                    value={milestone.description}
-                                    onChange={e => handleMilestoneChange(idx, e)}
-                                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
-                                    required
-                                  />
-                                </div>
-                                <div>
-                                  <input
-                                    type="number"
-                                    name="amount"
-                                    placeholder="ETH"
-                                    min="0"
-                                    step="0.0001"
-                                    value={milestone.amount}
-                                    onChange={e => handleMilestoneChange(idx, e)}
-                                    className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
-                                    required
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
                       </div>
-                      {error && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                          <div className="flex items-center">
-                            <span className="text-red-600 text-sm font-medium">⚠️ {error}</span>
+                    </div>
+                  </section>
+                ) : (
+                  <section className="w-full">
+                    <div className="flex justify-between items-center mb-10">
+                      <h1 className="text-5xl lg:text-7xl font-bold text-green-600">Your Jobs</h1>
+                      <button
+                        className="py-3 px-8 text-xl font-semibold bg-green-600 text-white rounded-2xl shadow-lg hover:bg-green-700"
+                        onClick={() => setShowModal(true)}
+                      >
+                        + Post Job
+                      </button>
+                    </div>
+                    <div className="grid gap-6">
+                      {jobs.map(job => (
+                        <div
+                          key={job._id}
+                          className="bg-white p-8 rounded-2xl border border-gray-200 shadow-md card-floating transition-shadow duration-300 hover:shadow-2xl hover:border-green-400 group"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h2 className="text-2xl font-bold text-green-700 flex items-center mb-2">
+                                <FaStar className="mr-2 text-yellow-500" /> Title: {job.title}
+                              </h2>
+                              <div className="text-gray-600 flex items-center mt-2 text-lg">
+                                <FaClock className="mr-2" /> Status: <span className="font-medium text-orange-600 ml-1">{job.status || 'open'}</span>
+                              </div>
+                              <div className="text-gray-600 flex items-center mt-1 text-lg">
+                                <FaClock className="mr-2" /> Deadline: <span className="font-medium ml-1">{formatDeadline(job.deadline)}</span>
+                              </div>
+                              {Array.isArray(job.milestones) && job.milestones.length > 0 && (
+                                <div className="mt-4">
+                                  <h3 className="text-lg font-semibold text-green-700 flex items-center mb-2">
+                                    <FaTasks className="mr-2 text-green-600" /> Milestones
+                                  </h3>
+                                  <div className="mt-2 space-y-2">
+                                    {job.milestones.map((ms, i) => (
+                                      <div key={i} className="flex flex-col md:flex-row md:items-center md:gap-4 bg-gray-50 p-3 rounded-lg border border-gray-100 group-hover:border-green-200 transition">
+                                        <span className="text-gray-700 font-medium text-base flex-1">{ms.title || ms.description}</span>
+                                        <span className="text-orange-600 font-semibold text-base mt-1 md:mt-0 flex items-center">
+                                          <FaTasks className="mr-1 text-green-500" /> {ms.amount} ETH
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <span className="text-yellow-500 font-bold text-xl">4.9 ★</span>
+                              <p className="text-gray-500 text-sm mt-1">$900K+ spent</p>
+                            </div>
                           </div>
                         </div>
-                      )}
-                      <button
-                        type="submit"
-                        className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
-                        disabled={loading}
-                      >
-                        {loading ? (
-                          <>
-                            <LoadingSpinner size="sm" text="" />
-                            <span>Creating Job...</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>🚀 Create Job</span>
-                          </>
-                        )}
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              )}
-              {showSuccess && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-                  <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center animate-fade-in">
-                    <div className="mb-6">
-                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <h2 className="text-2xl font-bold text-green-600 mb-2">Job Created Successfully!</h2>
-                      <p className="text-gray-600">Your job has been posted and escrowed on-chain.</p>
+                      ))}
                     </div>
-                    <button
-                      className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl"
-                      onClick={() => setShowSuccess(false)}
-                    >
-                      🎉 Close
-                    </button>
+                  </section>
+                )}
+                {showModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative animate-fade-in">
+                      <button
+                        className="absolute top-6 right-6 text-gray-400 hover:text-gray-700 text-2xl font-bold transition-colors"
+                        onClick={() => setShowModal(false)}
+                        aria-label="Close"
+                      >
+                        ×
+                      </button>
+                      <div className="mb-6">
+                        <h2 className="text-3xl font-bold text-gray-800 mb-2">Post a New Job</h2>
+                        <p className="text-gray-600">Create a detailed job posting to attract top Web3 talent</p>
+                      </div>
+                      <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="space-y-2">
+                          <label className="block font-semibold text-gray-700 mb-2">Job Title *</label>
+                          <input
+                            type="text"
+                            name="title"
+                            value={form.title}
+                            onChange={handleChange}
+                            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
+                            placeholder="e.g., Smart Contract Developer for DeFi Protocol"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="block font-semibold text-gray-700 mb-2">Deadline *</label>
+                          <input
+                            type="date"
+                            name="deadline"
+                            value={form.deadline}
+                            onChange={handleChange}
+                            min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
+                            required
+                          />
+                          <small className="text-gray-500 text-sm block">
+                            ⏰ Deadline must be at least tomorrow to give freelancers time to apply
+                          </small>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <label className="block font-semibold text-gray-700">Milestones *</label>
+                            <button
+                              type="button"
+                              className="text-green-600 hover:text-green-700 font-medium text-sm underline transition-colors"
+                              onClick={addMilestone}
+                            >
+                              + Add Milestone
+                            </button>
+                          </div>
+                          <div className="space-y-4">
+                            {form.milestones.map((milestone, idx) => (
+                              <div key={idx} className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                <div className="flex items-center justify-between mb-3">
+                                  <span className="text-sm font-medium text-gray-600">Milestone {idx + 1}</span>
+                                  {form.milestones.length > 1 && (
+                                    <button
+                                      type="button"
+                                      className="text-red-500 hover:text-red-700 text-lg font-bold transition-colors"
+                                      onClick={() => removeMilestone(idx)}
+                                      aria-label="Remove milestone"
+                                    >
+                                      ×
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                  <div className="md:col-span-2">
+                                    <input
+                                      type="text"
+                                      name="description"
+                                      placeholder="Milestone description"
+                                      value={milestone.description}
+                                      onChange={e => handleMilestoneChange(idx, e)}
+                                      className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
+                                      required
+                                    />
+                                  </div>
+                                  <div>
+                                    <input
+                                      type="number"
+                                      name="amount"
+                                      placeholder="ETH"
+                                      min="0"
+                                      step="0.0001"
+                                      value={milestone.amount}
+                                      onChange={e => handleMilestoneChange(idx, e)}
+                                      className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
+                                      required
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        {error && (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <div className="flex items-center">
+                              <span className="text-red-600 text-sm font-medium">⚠️ {error}</span>
+                            </div>
+                          </div>
+                        )}
+                        <button
+                          type="submit"
+                          className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                          disabled={loading}
+                        >
+                          {loading ? (
+                            <>
+                              <LoadingSpinner size="sm" text="" />
+                              <span>Creating Job...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>🚀 Create Job</span>
+                            </>
+                          )}
+                        </button>
+                      </form>
+                    </div>
                   </div>
-                </div>
-              )}
-            </>
-          )}
-        </main>
-        <Footer />
+                )}
+                {showSuccess && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center animate-fade-in">
+                      <div className="mb-6">
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <h2 className="text-2xl font-bold text-green-600 mb-2">Job Created Successfully!</h2>
+                        <p className="text-gray-600">Your job has been posted and escrowed on-chain.</p>
+                      </div>
+                      <button
+                        className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl"
+                        onClick={() => setShowSuccess(false)}
+                      >
+                        🎉 Close
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </main>
+          <Footer />
+        </div>
       </div>
-    </div>
+    </WalletConnectionChecker>
   );
 };
 

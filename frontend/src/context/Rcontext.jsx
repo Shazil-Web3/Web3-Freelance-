@@ -87,28 +87,21 @@ class JobAsCrewOneContext {
   // Create a job with milestones (client)
   async createJob(title, milestones, deadline) {
     try {
-      console.log('Creating job with title:', title);
-      
       // STEP 1: Get the current job counter to predict the next job ID
       const currentJobCounter = await this.readOnlyContract.jobCounter();
       const predictedJobId = Number(currentJobCounter);
-      console.log('Predicted job ID:', predictedJobId);
       
       // STEP 2: Format milestones and calculate total
       const totalAmount = milestones.reduce((sum, m) => sum + Number(m.amount), 0);
       const formattedMilestones = this.#formatMilestones(milestones);
-      console.log('Total amount:', totalAmount, 'ETH');
-      console.log('Formatted milestones:', formattedMilestones.length, 'items');
       
       // STEP 3: Create the job on the blockchain
       const tx = await this.contract.createJob(title, formattedMilestones, deadline, {
         value: ethers.parseEther(totalAmount.toString())
       });
-      console.log('Transaction submitted:', tx.hash);
       
       // STEP 4: Wait for transaction confirmation
       const receipt = await tx.wait();
-      console.log('Transaction confirmed in block:', receipt.blockNumber);
       
       // STEP 5: Return the predicted job ID (this is reliable since job creation increments the counter)
       return {
@@ -119,8 +112,7 @@ class JobAsCrewOneContext {
       };
       
     } catch (error) {
-      console.error('Job creation failed:', error);
-      throw new Error(`Failed to create job: ${error.message}`);
+      throw error;
     }
   }
 

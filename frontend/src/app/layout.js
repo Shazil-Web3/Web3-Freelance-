@@ -4,6 +4,8 @@ import "./globals.css";
 import Web3Provider from "../components/Web3Provider";
 import { WalletAuthProvider } from '../components/WalletAuthProvider';
 import { ContractProvider } from '../context/ContractContext';
+import { WalletProvider } from '../context/WalletContext';
+import { WalletConnectionHelper } from '../components/WalletConnectionHelper';
 import Lenis from 'lenis';
 import { useEffect } from 'react';
 
@@ -43,11 +45,14 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Web3Provider>
-          <WalletAuthProvider>
-            <ContractProvider>
-              {children}
-            </ContractProvider>
-          </WalletAuthProvider>
+          <WalletProvider>
+            <WalletAuthProvider>
+              <ContractProvider>
+                {children}
+                <WalletConnectionHelper />
+              </ContractProvider>
+            </WalletAuthProvider>
+          </WalletProvider>
         </Web3Provider>
       </body>
     </html>

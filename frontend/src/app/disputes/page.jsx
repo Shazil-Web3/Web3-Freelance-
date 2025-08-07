@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useWalletAuth } from "@/components/WalletAuthProvider";
 import { useContract } from "@/context/ContractContext";
+import { WalletConnectionChecker } from "@/components/WalletConnectionChecker";
 import {
   AlertTriangle,
   FileText,
@@ -110,6 +111,31 @@ const DisputePage = () => {
     }
   }, [isDisputeResolver, createMode]);
 
+  // Auto-refresh disputes when component mounts or resolver status changes
+  useEffect(() => {
+    if (token && isDisputeResolver) {
+      fetchDisputes();
+    }
+  }, [token, isDisputeResolver]);
+
+  // Check dispute resolver status on mount
+  useEffect(() => {
+    if (token) {
+      checkDisputeResolverStatus();
+    }
+  }, [token]);
+
+  // Periodic check for resolved disputes
+  useEffect(() => {
+    if (isDisputeResolver && token) {
+      const interval = setInterval(() => {
+        checkResolvedDisputes();
+      }, 30000); // Check every 30 seconds
+      
+      return () => clearInterval(interval);
+    }
+  }, [isDisputeResolver, token]);
+
   async function checkDisputeResolverStatus() {
     if (!user?.walletAddress) return;
     
@@ -118,7 +144,6 @@ const DisputePage = () => {
       // First check from smart contract directly
       if (contract) {
         const isResolver = await contract.isDisputeResolver(user.walletAddress);
-        console.log('Smart contract resolver check:', isResolver);
         setIsDisputeResolver(isResolver);
       } else {
         // Fallback to backend API if contract not available
@@ -146,9 +171,6 @@ const DisputePage = () => {
     try {
       const endpoint = isDisputeResolver ? '/api/disputes/resolver/all' : '/api/disputes/user/all';
       
-      console.log('Fetching disputes from endpoint:', endpoint);
-      console.log('Is dispute resolver:', isDisputeResolver);
-      
       const res = await fetch(`${BACKEND_URL}${endpoint}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -156,17 +178,6 @@ const DisputePage = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        console.log('Fetched disputes data:', data);
-        console.log('Disputes with job info:', data.disputes?.map(d => ({
-          id: d._id,
-          title: d.title,
-          job: d.job,
-          hasContractJobId: !!d.job?.contractJobId,
-          contractJobId: d.job?.contractJobId,
-          status: d.status,
-          client: d.client?.username,
-          freelancer: d.freelancer?.username
-        })));
         setDisputes(data.disputes || []);
       } else {
         console.error('Failed to fetch disputes:', res.status, res.statusText);
@@ -277,14 +288,32 @@ const DisputePage = () => {
       }
 
       const dispute = disputes.find(d => d._id === disputeId);
-      console.log('Resolving dispute:', dispute);
-      console.log('All disputes:', disputes);
       
       if (!dispute?.job?.contractJobId) {
         console.error('Dispute job data:', dispute?.job);
         console.error('Contract job ID missing for dispute:', disputeId);
         alert('Contract job ID not found for this dispute');
         return;
+      }
+
+      // First, ensure the dispute is properly raised on the blockchain
+      try {
+        // Check the job status in the smart contract
+        const jobStatus = await contract.getJobStatus(Number(dispute.job.contractJobId));
+        
+        // If job is not in disputed status, try to raise the dispute
+        if (jobStatus !== 3) { // 3 = Disputed status in JobStatus enum
+          try {
+            await contract.raiseDispute(Number(dispute.job.contractJobId), dispute.description || 'Dispute raised by resolver');
+          } catch (raiseError) {
+            console.error('Failed to raise dispute on blockchain:', raiseError);
+            alert('Failed to raise dispute on blockchain. Please try again.');
+            return;
+          }
+        }
+      } catch (statusError) {
+        console.error('Error checking job status:', statusError);
+        // Continue anyway, the resolve might still work
       }
 
       // Call smart contract directly first
@@ -295,12 +324,11 @@ const DisputePage = () => {
           const contractDecision = decision === 'client_favor' ? 1 : 2;
           
           await contract.resolveDispute(Number(dispute.job.contractJobId), contractDecision);
-          console.log('Smart contract dispute resolution successful');
           
           // Update backend after successful smart contract call
           let backendUpdateSuccess = false;
           let retryCount = 0;
-          const maxRetries = 3;
+          const maxRetries = 2; // Reduced from 3 to 2
           
           while (!backendUpdateSuccess && retryCount < maxRetries) {
             try {
@@ -318,20 +346,19 @@ const DisputePage = () => {
 
               if (res.ok) {
                 backendUpdateSuccess = true;
-                console.log('Backend update successful');
               } else {
-                console.error(`Backend update failed (attempt ${retryCount + 1}):`, res.status, res.statusText);
+                console.error(`❌ Backend update failed (attempt ${retryCount + 1}):`, res.status, res.statusText);
                 retryCount++;
                 if (retryCount < maxRetries) {
-                  // Wait 2 seconds before retry
-                  await new Promise(resolve => setTimeout(resolve, 2000));
+                  // Wait 1 second before retry (reduced from 2 seconds)
+                  await new Promise(resolve => setTimeout(resolve, 1000));
                 }
               }
             } catch (error) {
-              console.error(`Backend update error (attempt ${retryCount + 1}):`, error);
+              console.error(`❌ Backend update error (attempt ${retryCount + 1}):`, error);
               retryCount++;
               if (retryCount < maxRetries) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                await new Promise(resolve => setTimeout(resolve, 1000));
               }
             }
           }
@@ -339,18 +366,34 @@ const DisputePage = () => {
           if (backendUpdateSuccess) {
             alert(`Dispute resolved successfully! Payment has been automatically released to the ${decision === 'client_favor' ? 'client' : 'freelancer'}. The project is now marked as completed.`);
             
-            // Wait a moment for backend to process, then refresh disputes list
-            setTimeout(() => {
-              fetchDisputes();
-              // Also redirect to dashboard to show updated job status
-              router.push('/dashboard');
-            }, 1000);
+            // Set flag to indicate we're returning from dispute resolution
+            sessionStorage.setItem('returningFromDispute', 'true');
+            
+            // Immediately remove the resolved dispute from the local state
+            setDisputes(prevDisputes => prevDisputes.filter(d => d._id !== disputeId));
+            
+            // Immediately refresh disputes list and redirect to dashboard
+            await immediateRefreshDisputes();
+            router.push('/dashboard');
           } else {
-            alert('Dispute resolved on blockchain but backend update failed after multiple attempts. Please contact support to manually update the backend.');
-            // Still refresh disputes to show the updated state
-            setTimeout(() => {
-              fetchDisputes();
-            }, 1000);
+            // Even if backend update fails, the dispute was resolved on blockchain
+            // So we should still remove it from the list and update the UI
+            alert(`Dispute resolved successfully on blockchain! Payment has been automatically released to the ${decision === 'client_favor' ? 'client' : 'freelancer'}. The project is now marked as completed.`);
+            
+            // Set flag to indicate we're returning from dispute resolution
+            sessionStorage.setItem('returningFromDispute', 'true');
+            
+            // Immediately remove the resolved dispute from the local state
+            setDisputes(prevDisputes => prevDisputes.filter(d => d._id !== disputeId));
+            
+            // Try to manually update job status as fallback
+            if (dispute?.job?._id) {
+              await updateJobStatusAfterDispute(dispute.job._id, 'completed');
+            }
+            
+            // Immediately refresh disputes list and redirect to dashboard
+            await immediateRefreshDisputes();
+            router.push('/dashboard');
           }
         } catch (contractError) {
           console.error('Smart contract call failed:', contractError);
@@ -378,7 +421,6 @@ const DisputePage = () => {
     try {
       // Find the dispute to get the contract job ID
       const dispute = disputes.find(d => d._id === disputeId);
-      console.log('Cancelling project for dispute:', dispute);
       
       if (!dispute?.job?.contractJobId) {
         console.error('Dispute job data:', dispute?.job);
@@ -449,7 +491,6 @@ const DisputePage = () => {
 
       // Check job status in smart contract
       const jobStatus = await checkJobStatusInContract(Number(dispute.job.contractJobId));
-      console.log('Job status for post-dispute payment:', jobStatus);
 
       if (jobStatus && jobStatus.status === 4) { // Resolved status
         // The dispute was resolved in favor of freelancer, so payment should be released
@@ -465,6 +506,30 @@ const DisputePage = () => {
       alert('Failed to handle post-dispute payment: ' + error.message);
     } finally {
       setActionLoading(prev => ({ ...prev, [`payment-${disputeId}`]: false }));
+    }
+  }
+
+  // Manual job status update after dispute resolution
+  async function updateJobStatusAfterDispute(jobId, newStatus = 'completed') {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/jobs/${jobId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      if (res.ok) {
+        return true;
+      } else {
+        console.error('❌ Failed to update job status:', res.status, res.statusText);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error updating job status:', error);
+      return false;
     }
   }
 
@@ -516,9 +581,6 @@ const DisputePage = () => {
     try {
       const isResolver = await contract.isDisputeResolver(user.walletAddress);
       setIsDisputeResolver(isResolver);
-      console.log('Current user resolver status from contract:', isResolver);
-      console.log('User wallet address:', user.walletAddress);
-      console.log('Contract address:', contract.target);
     } catch (error) {
       console.error('Failed to check current user resolver status:', error);
     }
@@ -557,7 +619,6 @@ const DisputePage = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        console.log('Dispute found:', data.dispute);
         return data.dispute;
       } else {
         console.error('Dispute not found:', res.status, res.statusText);
@@ -575,7 +636,6 @@ const DisputePage = () => {
     
     try {
       const job = await contract.getJob(jobId);
-      console.log('Job status in contract:', job);
       return job;
     } catch (error) {
       console.error('Failed to get job status from contract:', error);
@@ -590,11 +650,9 @@ const DisputePage = () => {
     try {
       // Check current job status
       const jobStatus = await checkJobStatusInContract(Number(dispute.job.contractJobId));
-      console.log('Current job status in contract:', jobStatus);
       
       // If job is not in Disputed status, try to raise the dispute
       if (jobStatus && jobStatus.status !== 3) { // 3 = Disputed status
-        console.log('Job not in disputed status, attempting to raise dispute...');
         
         // Check if user is authorized (client or freelancer)
         const isClient = jobStatus.client.toLowerCase() === user.walletAddress.toLowerCase();
@@ -607,7 +665,6 @@ const DisputePage = () => {
         
         // Raise the dispute
         await contract.raiseDispute(Number(dispute.job.contractJobId), dispute.description);
-        console.log('Dispute raised successfully on contract');
         return true;
       }
       
@@ -625,7 +682,6 @@ const DisputePage = () => {
     try {
       // Check blockchain status
       const blockchainStatus = await checkJobStatusInContract(Number(jobId));
-      console.log('Blockchain job status:', blockchainStatus);
       
       // Check backend status
       const backendRes = await fetch(`${BACKEND_URL}/api/jobs/${jobId}`, {
@@ -636,7 +692,6 @@ const DisputePage = () => {
       
       if (backendRes.ok) {
         const backendData = await backendRes.json();
-        console.log('Backend job status:', backendData.job.status);
         
         // Compare statuses
         const statusMatch = blockchainStatus && 
@@ -645,8 +700,6 @@ const DisputePage = () => {
            (blockchainStatus.status === 2 && backendData.job.status === 'completed') ||
            (blockchainStatus.status === 3 && backendData.job.status === 'disputed') ||
            (blockchainStatus.status === 4 && backendData.job.status === 'resolved'));
-        
-        console.log('Status match:', statusMatch);
         
         return {
           blockchain: blockchainStatus,
@@ -677,7 +730,7 @@ const DisputePage = () => {
   async function checkResolvedDisputes() {
     try {
       // Get all disputes including resolved ones
-      const res = await fetch(`${BACKEND_URL}/api/disputes/user/all`, {
+      const res = await fetch(`${BACKEND_URL}/api/disputes/resolver/all`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -689,18 +742,50 @@ const DisputePage = () => {
           d.status === 'resolved_client' || d.status === 'resolved_freelancer'
         ) || [];
         
-        console.log('Found resolved disputes:', resolvedDisputes.length);
-        
         if (resolvedDisputes.length > 0) {
-          alert(`Found ${resolvedDisputes.length} resolved disputes. These should not appear in the resolver's list.`);
-        } else {
-          alert('No resolved disputes found.');
+          setDisputes(prevDisputes => 
+            prevDisputes.filter(d => 
+              !resolvedDisputes.some(resolved => resolved._id === d._id)
+            )
+          );
         }
       }
     } catch (error) {
-      console.error('Failed to check resolved disputes:', error);
+      console.error('❌ Error checking resolved disputes:', error);
     }
   }
+
+  // Force refresh disputes list and check for resolved disputes
+  async function forceRefreshDisputes() {
+    console.log('🔄 Force refreshing disputes list...');
+    setLoading(true);
+    try {
+      await fetchDisputes();
+      console.log('✅ Disputes list refreshed successfully');
+    } catch (error) {
+      console.error('❌ Failed to refresh disputes list:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Immediate refresh disputes list
+  const immediateRefreshDisputes = async () => {
+    try {
+      const endpoint = isDisputeResolver ? '/api/disputes/resolver/all' : '/api/disputes/user/all';
+      const res = await fetch(`${BACKEND_URL}${endpoint}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDisputes(data.disputes || []);
+      }
+    } catch (error) {
+      console.error('❌ Failed to refresh disputes list:', error);
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -754,148 +839,58 @@ const DisputePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="pt-20">
-        {/* Header */}
-        <section className="py-12 px-12 lg:px-28 relative overflow-hidden w-full">
-          <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-background to-orange-500/10" />
-          <div className="absolute top-1/2 left-[-10rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(239,68,68,0.15)_0%,_transparent_70%)] -translate-y-1/2" />
-          <div className="absolute top-1/2 right-[-10rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.12)_0%,_transparent_70%)] -translate-y-1/2" />
-          <div className="container mx-auto relative z-10">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <AlertTriangle className="w-10 h-10 text-red-500" />
-                  <h1 className="text-4xl font-bold">
-                    Dispute Management
-                  </h1>
-                  {isDisputeResolver && (
-                    <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                      <Shield className="w-4 h-4" />
-                      Dispute Resolver
-                    </div>
-                  )}
-                </div>
-                <p className="text-xl text-muted-foreground">
-                  {isDisputeResolver 
-                    ? 'Review and resolve all project disputes' 
-                    : createMode 
-                      ? 'Create a new dispute for your project' 
-                      : 'Manage and track your project disputes'
-                  }
-                </p>
+    <WalletConnectionChecker requireConnection={true}>
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-20">
+          {/* Header */}
+          <section className="py-12 px-12 lg:px-28 relative overflow-hidden w-full">
+            <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-background to-orange-500/10" />
+            <div className="absolute top-1/2 left-[-10rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(239,68,68,0.15)_0%,_transparent_70%)] -translate-y-1/2" />
+            <div className="absolute top-1/2 right-[-10rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.12)_0%,_transparent_70%)] -translate-y-1/2" />
+            <div className="container mx-auto relative z-10">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <AlertTriangle className="w-10 h-10 text-red-500" />
+                    <h1 className="text-4xl font-bold">
+                      Dispute Management
+                    </h1>
+                    {isDisputeResolver && (
+                      <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                        <Shield className="w-4 h-4" />
+                        Dispute Resolver
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xl text-muted-foreground">
+                    {isDisputeResolver 
+                      ? 'Review and resolve all project disputes' 
+                      : createMode 
+                        ? 'Create a new dispute for your project' 
+                        : 'Manage and track your project disputes'
+                    }
+                  </p>
                 
-                {/* Debug Information */}
-                <div className="mt-4 p-4 bg-gray-100 rounded-lg text-sm">
-                  <h4 className="font-medium mb-2">Debug Information:</h4>
-                  <p>Wallet Address: {user?.walletAddress}</p>
-                  <p>Wallet Address (lowercase): {user?.walletAddress?.toLowerCase()}</p>
-                  <p>Contract Available: {contract ? 'Yes' : 'No'}</p>
-                  <p>Contract Address: {contract?.target}</p>
-                  <p>Is Dispute Resolver: {isDisputeResolver ? 'Yes' : 'No'}</p>
-                  <p>Expected Resolver: 0x39CEE3E30cB32ce23CD3653D6f4d77155A4Fc35e</p>
-                  <p>Expected Resolver (lowercase): 0x39cee3e30cb32ce23cd3653d6f4d77155a4fc35e</p>
-                  <p>Status: {isDisputeResolver ? '✅ Recognized as Dispute Resolver' : '❌ Not recognized as Dispute Resolver'}</p>
-                  <p>Addresses Match: {user?.walletAddress?.toLowerCase() === '0x39cee3e30cb32ce23cd3653d6f4d77155a4fc35e' ? 'Yes' : 'No'}</p>
-                  
-                  {/* Show dispute statuses if resolver */}
-                  {isDisputeResolver && disputes.length > 0 && (
-                    <div className="mt-4">
-                      <h5 className="font-medium">Dispute Statuses:</h5>
-                      {disputes.map((dispute, index) => (
-                        <div key={index} className="text-xs">
-                          Dispute {index + 1}: {dispute.title} - Status: {dispute.status} 
-                          (Actionable: {(dispute.status === 'open' || dispute.status === 'under_review') ? 'Yes' : 'No'})
-                          {dispute.job?.contractJobId && (
-                            <button
-                              onClick={async () => {
-                                const jobStatus = await checkJobStatusInContract(Number(dispute.job.contractJobId));
-                                console.log(`Job ${dispute.job.contractJobId} status:`, jobStatus);
-                                alert(`Job ${dispute.job.contractJobId} status: ${jobStatus ? jobStatus.status : 'Error getting status'}`);
-                              }}
-                              className="ml-2 bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded text-xs"
-                            >
-                              Check Contract Status
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Manual Override for Testing */}
+                {/* Debug Information - Always show toggle button for dispute resolvers */}
+                {isDisputeResolver && (
                   <div className="mt-4">
-                    <button
-                      onClick={async () => {
-                        // Refresh resolver status from smart contract
-                        await checkCurrentUserResolverStatus();
-                        console.log('Manual refresh: isDisputeResolver set to', isDisputeResolver);
-                      }}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs mr-2"
-                    >
-                      Refresh Resolver Status
-                    </button>
                     <button
                       onClick={() => {
                         setIsDisputeResolver(!isDisputeResolver);
-                        console.log('Manual override: isDisputeResolver set to', !isDisputeResolver);
                       }}
                       className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs mr-2"
                     >
                       Toggle Dispute Resolver Status (Testing)
                     </button>
                     <button
-                      onClick={async () => {
-                        // Check for the specific dispute that was created
-                        const disputeId = '6894748ebeda86234b93d997'; // The dispute ID from the URL
-                        const dispute = await checkDisputeExists(disputeId);
-                        if (dispute) {
-                          alert(`Dispute found: ${dispute.title} - Status: ${dispute.status}`);
-                        } else {
-                          alert('Dispute not found in database');
-                        }
-                      }}
-                      className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-xs mr-2"
+                      onClick={forceRefreshDisputes}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs"
                     >
-                      Check Specific Dispute
-                    </button>
-                    <button
-                      onClick={async () => {
-                        // Check job status sync for the specific job
-                        const jobId = '6894748ebeda86234b93d997'; // Replace with actual job ID
-                        const syncStatus = await checkJobStatusSync(jobId);
-                        if (syncStatus) {
-                          alert(`Job Status Sync:\nBlockchain: ${syncStatus.blockchain?.status}\nBackend: ${syncStatus.backend?.status}\nMatch: ${syncStatus.match ? 'Yes' : 'No'}`);
-                        } else {
-                          alert('Failed to check job status sync');
-                        }
-                      }}
-                      className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-xs"
-                    >
-                      Check Job Status Sync
-                    </button>
-                    <button
-                      onClick={async () => {
-                        // Force refresh disputes list
-                        await fetchDisputes();
-                        alert('Disputes list refreshed. Check if resolved disputes are now removed.');
-                      }}
-                      className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-xs"
-                    >
-                      Force Refresh Disputes
-                    </button>
-                    <button
-                      onClick={async () => {
-                        // Check for resolved disputes
-                        await checkResolvedDisputes();
-                      }}
-                      className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded text-xs"
-                    >
-                      Check Resolved Disputes
+                      Refresh Disputes List
                     </button>
                   </div>
-                </div>
+                )}
               </div>
               {!createMode && !isDisputeResolver && (
                 <button
@@ -1029,6 +1024,40 @@ const DisputePage = () => {
           </section>
         )}
 
+        {/* Additional Toggle Button for Create Mode */}
+        {isDisputeResolver && createMode && (
+          <section className="py-4 px-12 lg:px-28">
+            <div className="container mx-auto">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-blue-800">Dispute Resolver - Create Mode</h3>
+                    <p className="text-sm text-blue-700 mt-1">
+                      You are in create mode as a dispute resolver. You can create disputes or switch back to resolver view.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setIsDisputeResolver(!isDisputeResolver);
+                      }}
+                      className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs mr-2"
+                    >
+                      Toggle Dispute Resolver Status (Testing)
+                    </button>
+                    <button
+                      onClick={() => setCreateMode(false)}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                    >
+                      View All Disputes
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         {createMode && !isDisputeResolver ? (
           /* Create Dispute Form */
           <section className="py-8 px-12 lg:px-28">
@@ -1128,10 +1157,20 @@ const DisputePage = () => {
               </div>
             </div>
           </section>
-        ) : (
-          /* Disputes List */
+        ) : null}
+
+        {/* Disputes List - Show for all users (including clients in create mode) */}
+        {(!createMode || !isDisputeResolver) && (
           <section className="py-8 px-12 lg:px-28">
             <div className="container mx-auto">
+              {/* Section Header for Clients */}
+              {!isDisputeResolver && createMode && (
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold mb-4">Your Existing Disputes</h2>
+                  <p className="text-muted-foreground">Below are all the disputes you have created:</p>
+                </div>
+              )}
+              
               {loading ? (
                 <div className="text-center py-12">
                   <div className="flex items-center justify-center gap-2">
@@ -1349,7 +1388,8 @@ const DisputePage = () => {
         )}
       </main>
       <Footer />
-    </div>
+      </div>
+    </WalletConnectionChecker>
   );
 };
 

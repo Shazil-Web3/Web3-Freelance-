@@ -150,7 +150,7 @@ export const Footer = () => {
             </div>
 
             <div className="text-sm text-muted-foreground">
-              © 2024 Leavon. All rights reserved.
+              © 2025 Leavon. All rights reserved.
             </div>
           </div>
         </div>

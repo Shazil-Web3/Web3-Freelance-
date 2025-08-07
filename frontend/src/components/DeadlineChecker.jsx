@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import JobAsCrewOneContext from '@/context/Rcontext';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || 'YOUR_CONTRACT_ADDRESS_HERE';
@@ -9,6 +9,38 @@ const DeadlineChecker = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [jobCounter, setJobCounter] = useState(null);
+  const [contract, setContract] = useState(null);
+  const [deadlinePassed, setDeadlinePassed] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  useEffect(() => {
+    const checkDeadline = async () => {
+      if (!jobId || !contract) return;
+
+      try {
+        const job = await contract.getJob(jobId);
+        const deadline = Number(job.deadline);
+        
+        if (deadline > 0) {
+          const now = Math.floor(Date.now() / 1000);
+          const timeLeft = deadline - now;
+          
+          if (timeLeft <= 0) {
+            setDeadlinePassed(true);
+          } else {
+            setDeadlinePassed(false);
+            setTimeLeft(timeLeft);
+          }
+        }
+      } catch (error) {
+        // Handle error silently
+      }
+    };
+
+    checkDeadline();
+    const interval = setInterval(checkDeadline, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [jobId, contract]);
 
   const checkDeadline = async () => {
     if (!jobId) return;
@@ -20,12 +52,8 @@ const DeadlineChecker = () => {
     try {
       const contract = await JobAsCrewOneContext.createAsync(CONTRACT_ADDRESS, window.ethereum);
       
-      console.log('DeadlineChecker: Checking job ID:', jobId);
-      
       // Use the fixed getJob method
       const job = await contract.getJob(parseInt(jobId));
-      
-      console.log('DeadlineChecker: Raw job data:', job);
       
       if (!job) {
         throw new Error('Job not found or invalid job ID');
@@ -50,9 +78,7 @@ const DeadlineChecker = () => {
         paidAmount: job.paidAmount || '0'
       });
     } catch (err) {
-      console.error('DeadlineChecker error:', err);
-      console.error('Error stack:', err.stack);
-      setError(`${err.message || 'Failed to check deadline'} - Check console for details`);
+      setError(`${err.message || 'Failed to check deadline'}`);
     } finally {
       setLoading(false);
     }
@@ -68,7 +94,7 @@ const DeadlineChecker = () => {
         setJobId((counter - 1).toString());
       }
     } catch (err) {
-      console.error('Failed to get job counter:', err);
+      setError('Failed to get job counter');
     }
   };
 
