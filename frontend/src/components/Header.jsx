@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount } from 'wagmi';
+import { useWalletConnection } from '../hooks/useWalletConnection';
 
 // Simple SVG Icons
 const MenuIcon = ({ className }) => (
@@ -32,7 +31,7 @@ const navigation = [
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { isConnected } = useAccount();
+  const { isConnected, account, connectWallet, disconnectWallet, isConnecting } = useWalletConnection();
   const [walletLoaded, setWalletLoaded] = useState(false);
 
   useEffect(() => {
@@ -55,6 +54,19 @@ export default function Header() {
         });
       }
       setMobileMenuOpen(false);
+    }
+  };
+
+  const formatAddress = (address) => {
+    if (!address) return '';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const handleWalletAction = () => {
+    if (isConnected) {
+      disconnectWallet();
+    } else {
+      connectWallet();
     }
   };
 
@@ -86,9 +98,18 @@ export default function Header() {
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-4">
             {walletLoaded ? (
-              <div className={`wallet-gradient-btn ${isConnected ? 'wallet-connected' : ''}}`}>
-                <ConnectButton showBalance={false} />
-              </div>
+              <button
+                onClick={handleWalletAction}
+                disabled={isConnecting}
+                className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                  isConnected
+                    ? 'bg-green-500 hover:bg-green-600 text-white'
+                    : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
+                } disabled:opacity-50 flex items-center gap-2`}
+              >
+                <WalletIcon className="h-4 w-4" />
+                {isConnecting ? 'Connecting...' : isConnected ? formatAddress(account) : 'Connect Wallet'}
+              </button>
             ) : (
               <div className="h-10 w-36 rounded-xl bg-secondary animate-pulse"></div>
             )}
@@ -121,9 +142,18 @@ export default function Header() {
               ))}
               <div className="flex flex-col gap-3 pt-4 border-t border-border/50">
                 {walletLoaded ? (
-                  <div className={`wallet-gradient-btn ${isConnected ? 'wallet-connected' : ''}`}>
-                    <ConnectButton showBalance={false} />
-                  </div>
+                  <button
+                    onClick={handleWalletAction}
+                    disabled={isConnecting}
+                    className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                      isConnected
+                        ? 'bg-green-500 hover:bg-green-600 text-white'
+                        : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
+                    } disabled:opacity-50 flex items-center gap-2 justify-center`}
+                  >
+                    <WalletIcon className="h-4 w-4" />
+                    {isConnecting ? 'Connecting...' : isConnected ? formatAddress(account) : 'Connect Wallet'}
+                  </button>
                 ) : (
                   <div className="h-10 w-36 rounded-xl bg-secondary animate-pulse"></div>
                 )}

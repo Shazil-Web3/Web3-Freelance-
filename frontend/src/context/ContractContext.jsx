@@ -1,6 +1,5 @@
 "use client"
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
 import { ethers } from 'ethers';
 import JobAsCrewOneContext from './Rcontext';
 import { useWallet } from './WalletContext';
@@ -8,8 +7,7 @@ import { useWallet } from './WalletContext';
 const ContractContext = createContext();
 
 export function ContractProvider({ children }) {
-  const { address, isConnected } = useAccount();
-  const { account: walletAccount, isConnected: walletIsConnected, signer } = useWallet();
+  const { account, isConnected, signer } = useWallet();
   const [contract, setContract] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,16 +15,12 @@ export function ContractProvider({ children }) {
 
   const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x670D7916E96A08c2d1bF3FFb538f4B99b433bEde';
 
-  // Use wallet context state as primary, fallback to wagmi
-  const isWalletConnected = walletIsConnected || isConnected;
-  const currentAccount = walletAccount || address;
-
   // Initialize contract when wallet connects
   useEffect(() => {
     let mounted = true;
 
     const initializeContract = async () => {
-      if (!isWalletConnected || !currentAccount) {
+      if (!isConnected || !account) {
         if (mounted) {
           setContract(null);
           setLoading(false);
@@ -52,7 +46,6 @@ export function ContractProvider({ children }) {
           setContract(contractInstance);
           setLoading(false);
           setIsInitialized(true);
-          // Global contract context initialized successfully
         }
       } catch (err) {
         console.error('Failed to initialize global contract context:', err);
@@ -74,16 +67,16 @@ export function ContractProvider({ children }) {
       mounted = false;
       clearTimeout(timer);
     };
-  }, [isWalletConnected, currentAccount, CONTRACT_ADDRESS]);
+  }, [isConnected, account, CONTRACT_ADDRESS]);
 
   // Handle wallet disconnection
   useEffect(() => {
-    if (!isWalletConnected) {
+    if (!isConnected) {
       setContract(null);
       setError(null);
       setIsInitialized(false);
     }
-  }, [isWalletConnected]);
+  }, [isConnected]);
 
   // Handle account changes
   useEffect(() => {
@@ -95,7 +88,7 @@ export function ContractProvider({ children }) {
         setIsInitialized(false);
       } else {
         // User switched accounts, reinitialize contract
-        if (isWalletConnected && currentAccount) {
+        if (isConnected && account) {
           const initializeContract = async () => {
             try {
               const contractInstance = await JobAsCrewOneContext.createAsync(CONTRACT_ADDRESS, window.ethereum);
@@ -129,15 +122,15 @@ export function ContractProvider({ children }) {
         window.ethereum.removeListener('chainChanged', handleChainChanged);
       };
     }
-  }, [isWalletConnected, currentAccount, CONTRACT_ADDRESS]);
+  }, [isConnected, account, CONTRACT_ADDRESS]);
 
   const value = {
     contract,
     loading,
     error,
     isInitialized,
-    address: currentAccount,
-    isConnected: isWalletConnected
+    address: account,
+    isConnected
   };
 
   return (

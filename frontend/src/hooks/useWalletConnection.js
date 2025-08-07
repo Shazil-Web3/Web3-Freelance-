@@ -14,9 +14,6 @@ export const useWalletConnection = () => {
     getContract: wallet.getContract,
     signMessage: wallet.signMessage,
     sendTransaction: wallet.sendTransaction,
-    forceReconnect: wallet.forceReconnect,
-    checkSigningPermissions: wallet.checkSigningPermissions,
-    checkAndRequestSigningPermissions: wallet.checkAndRequestSigningPermissions,
-    forceSigningPermissionRequest: wallet.forceSigningPermissionRequest
+    isMetaMaskInstalled: wallet.isMetaMaskInstalled
   };
 }; 

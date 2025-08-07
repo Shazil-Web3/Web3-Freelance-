@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useWalletAuth } from "@/components/WalletAuthProvider";
-import { WalletConnectionChecker } from "@/components/WalletConnectionChecker";
+import { SignerProvider } from "@/components/SignerProvider";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import {
   Briefcase,
@@ -401,7 +401,7 @@ const Dashboard = () => {
   }
 
   return (
-    <WalletConnectionChecker requireConnection={true}>
+    <SignerProvider requireAuth={true}>
       <div className="min-h-screen bg-background flex flex-col">
         <Header />
         <main className="pt-20">
@@ -954,7 +954,7 @@ const Dashboard = () => {
         </main>
         <Footer />
       </div>
-    </WalletConnectionChecker>
+    </SignerProvider>
   );
 };
 

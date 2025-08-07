@@ -1,4 +1,5 @@
 "use client";
+import { useWalletConnection } from '../hooks/useWalletConnection';
 
 // Simple SVG Icons
 const ArrowRightIcon = ({ className }) => (
@@ -14,6 +15,13 @@ const PlayIcon = ({ className }) => (
 );
 
 const HeroSection = () => {
+  const { connectWallet, isConnected, account, isConnecting } = useWalletConnection();
+
+  const formatAddress = (address) => {
+    if (!address) return '';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden w-full max-w-full">
       {/* Gradient background */}
@@ -40,15 +48,38 @@ const HeroSection = () => {
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4">
-            <a href="/post-a-job" className="btn-primary group">
-                Post a Job
-                <ArrowRightIcon className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </a>
-              <a href="/apply-for-jobs" className="btn-secondary group">
-                <ArrowRightIcon className="mr-2 h-5 w-5" />
-                Apply for a Job
-              </a>
+            {/* Wallet Connection Status */}
+            <div className="space-y-4">
+              {isConnected ? (
+                <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="font-medium">Connected: {formatAddress(account)}</span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-2 bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <span className="font-medium">Wallet not connected</span>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button 
+                  onClick={connectWallet}
+                  disabled={isConnecting}
+                  className="btn-primary group disabled:opacity-50"
+                >
+                  {isConnecting ? 'Connecting...' : isConnected ? 'Wallet Connected' : 'Connect Wallet'}
+                  <ArrowRightIcon className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </button>
+                <a href="/post-a-job" className="btn-secondary group">
+                  Post a Job
+                  <ArrowRightIcon className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </a>
+                <a href="/apply-for-jobs" className="btn-secondary group">
+                  <ArrowRightIcon className="mr-2 h-5 w-5" />
+                  Apply for a Job
+                </a>
+              </div>
             </div>
 
             {/* Stats */}

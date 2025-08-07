@@ -4,9 +4,9 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import JobAsCrewOneContext from '@/context/Rcontext';
 import { useWalletAuth } from '@/components/WalletAuthProvider';
-import { WalletConnectionChecker } from '@/components/WalletConnectionChecker';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { FaClock, FaMoneyBillWave, FaMapMarkerAlt, FaStar, FaTasks } from 'react-icons/fa';
+import { SignerProvider } from '@/components/SignerProvider';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || 'YOUR_CONTRACT_ADDRESS_HERE';
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
@@ -197,7 +197,7 @@ const PostAJobPage = () => {
   };
 
   return (
-    <WalletConnectionChecker requireConnection={true}>
+    <SignerProvider requireAuth={true}>
       <div className="min-h-screen bg-background relative overflow-hidden flex flex-col">
         {/* Glow orbs with green and orange gradients */}
         <div className="absolute top-[-10rem] left-[-16rem] w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.32)_0%,_transparent_70%)] z-0" />
@@ -467,7 +467,7 @@ const PostAJobPage = () => {
           <Footer />
         </div>
       </div>
-    </WalletConnectionChecker>
+    </SignerProvider>
   );
 };
 

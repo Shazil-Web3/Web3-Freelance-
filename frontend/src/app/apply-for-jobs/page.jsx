@@ -4,7 +4,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import JobAsCrewOneContext from '@/context/Rcontext';
 import { useWalletAuth } from '@/components/WalletAuthProvider';
-import { WalletConnectionChecker } from '@/components/WalletConnectionChecker';
+import { SignerProvider } from '@/components/SignerProvider';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import DeadlineChecker from '@/components/DeadlineChecker';
 import { 
@@ -263,7 +263,7 @@ const ApplyForJobsPage = () => {
   const filteredJobs = jobs.filter(job => job.status === 'open' && (!user || job.client?._id !== user._id));
 
   return (
-    <WalletConnectionChecker requireConnection={true}>
+    <SignerProvider requireAuth={true}>
       <div className="min-h-screen bg-background relative overflow-hidden flex flex-col">
         {/* Glow orbs with green and orange gradients - similar to post-a-job page */}
         <div className="absolute top-[-10rem] left-[-16rem] w-[28rem] h-[28rem] bg-[radial-gradient(circle,_rgba(34,197,94,0.32)_0%,_transparent_70%)] z-0" />
@@ -532,7 +532,7 @@ const ApplyForJobsPage = () => {
         </main>
         <Footer />
       </div>
-    </WalletConnectionChecker>
+    </SignerProvider>
   );
 };
 

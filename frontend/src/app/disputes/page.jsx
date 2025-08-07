@@ -5,24 +5,32 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useWalletAuth } from "@/components/WalletAuthProvider";
+import { SignerProvider } from "@/components/SignerProvider";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { FaExclamationTriangle, FaCheckCircle, FaClock, FaTimes } from "react-icons/fa";
 import { useContract } from "@/context/ContractContext";
-import { WalletConnectionChecker } from "@/components/WalletConnectionChecker";
+import JobAsCrewOneContext from '@/context/Rcontext';
+import { ethers } from 'ethers';
 import {
-  AlertTriangle,
-  FileText,
+  Briefcase,
+  DollarSign,
   Clock,
+  CheckCircle,
+  TrendingUp,
+  Users,
+  Star,
+  Calendar,
+  ChevronRight,
+  AlertTriangle,
+  Shield,
+  Crown,
+  Loader2,
+  FileText,
   User,
   MessageSquare,
   Upload,
   Download,
-  CheckCircle,
-  XCircle,
-  Shield,
-  Gavel,
-  Eye,
-  EyeOff,
-  Loader2,
-  Crown
+  XCircle
 } from "lucide-react";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
@@ -839,39 +847,39 @@ const DisputePage = () => {
   }
 
   return (
-    <WalletConnectionChecker requireConnection={true}>
+    <SignerProvider requireAuth={true}>
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-20">
-          {/* Header */}
-          <section className="py-12 px-12 lg:px-28 relative overflow-hidden w-full">
-            <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-background to-orange-500/10" />
-            <div className="absolute top-1/2 left-[-10rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(239,68,68,0.15)_0%,_transparent_70%)] -translate-y-1/2" />
-            <div className="absolute top-1/2 right-[-10rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.12)_0%,_transparent_70%)] -translate-y-1/2" />
-            <div className="container mx-auto relative z-10">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <AlertTriangle className="w-10 h-10 text-red-500" />
-                    <h1 className="text-4xl font-bold">
-                      Dispute Management
-                    </h1>
-                    {isDisputeResolver && (
-                      <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                        <Shield className="w-4 h-4" />
-                        Dispute Resolver
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xl text-muted-foreground">
-                    {isDisputeResolver 
-                      ? 'Review and resolve all project disputes' 
-                      : createMode 
-                        ? 'Create a new dispute for your project' 
-                        : 'Manage and track your project disputes'
-                    }
-                  </p>
-                
+        {/* Header */}
+        <section className="py-12 px-12 lg:px-28 relative overflow-hidden w-full">
+          <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-background to-orange-500/10" />
+          <div className="absolute top-1/2 left-[-10rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(239,68,68,0.15)_0%,_transparent_70%)] -translate-y-1/2" />
+          <div className="absolute top-1/2 right-[-10rem] w-[36rem] h-[36rem] bg-[radial-gradient(circle,_rgba(249,115,22,0.12)_0%,_transparent_70%)] -translate-y-1/2" />
+          <div className="container mx-auto relative z-10">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <AlertTriangle className="w-10 h-10 text-red-500" />
+                  <h1 className="text-4xl font-bold">
+                    Dispute Management
+                  </h1>
+                  {isDisputeResolver && (
+                    <div className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                      <Shield className="w-4 h-4" />
+                      Dispute Resolver
+                    </div>
+                  )}
+                </div>
+                <p className="text-xl text-muted-foreground">
+                  {isDisputeResolver 
+                    ? 'Review and resolve all project disputes' 
+                    : createMode 
+                      ? 'Create a new dispute for your project' 
+                      : 'Manage and track your project disputes'
+                  }
+                </p>
+              
                 {/* Debug Information - Always show toggle button for dispute resolvers */}
                 {isDisputeResolver && (
                   <div className="mt-4">
@@ -1389,7 +1397,7 @@ const DisputePage = () => {
       </main>
       <Footer />
       </div>
-    </WalletConnectionChecker>
+    </SignerProvider>
   );
 };
 

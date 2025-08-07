@@ -1,7 +1,6 @@
 "use client"
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Web3Provider from "../components/Web3Provider";
 import { WalletAuthProvider } from '../components/WalletAuthProvider';
 import { ContractProvider } from '../context/ContractContext';
 import { WalletProvider } from '../context/WalletContext';
@@ -44,16 +43,14 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Web3Provider>
-          <WalletProvider>
-            <WalletAuthProvider>
-              <ContractProvider>
-                {children}
-                <WalletConnectionHelper />
-              </ContractProvider>
-            </WalletAuthProvider>
-          </WalletProvider>
-        </Web3Provider>
+        <WalletProvider>
+          <WalletAuthProvider>
+            <ContractProvider>
+              {children}
+              <WalletConnectionHelper />
+            </ContractProvider>
+          </WalletAuthProvider>
+        </WalletProvider>
       </body>
     </html>
   );
