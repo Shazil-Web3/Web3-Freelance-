@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -35,7 +35,8 @@ import {
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-const DisputePage = () => {
+// Separate component that uses useSearchParams
+const DisputePageContent = () => {
   const { user, token, loading: authLoading } = useWalletAuth();
   const { contract, address } = useContract();
   const router = useRouter();
@@ -1398,6 +1399,26 @@ const DisputePage = () => {
       <Footer />
       </div>
     </SignerProvider>
+  );
+};
+
+// Main component that wraps the content in Suspense
+const DisputePage = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-20 flex items-center justify-center">
+          <div className="flex items-center gap-2">
+            <Loader2 className="w-6 h-6 animate-spin" />
+            <span className="text-lg text-muted-foreground">Loading...</span>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    }>
+      <DisputePageContent />
+    </Suspense>
   );
 };
 
