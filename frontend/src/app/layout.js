@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Web3Provider from "../components/Web3Provider";
 import { WalletAuthProvider } from '../components/WalletAuthProvider';
+import { ContractProvider } from '../context/ContractContext';
 import Lenis from 'lenis';
 import { useEffect } from 'react';
 
@@ -43,7 +44,9 @@ export default function RootLayout({ children }) {
       >
         <Web3Provider>
           <WalletAuthProvider>
-            {children}
+            <ContractProvider>
+              {children}
+            </ContractProvider>
           </WalletAuthProvider>
         </Web3Provider>
       </body>

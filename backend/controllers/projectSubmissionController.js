@@ -147,8 +147,12 @@ exports.approveProject = async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    if (job.status !== 'submitted') {
-      return res.status(400).json({ message: 'Job is not submitted for approval' });
+    // Check if job is in a state that can be approved
+    // The job can be approved if it's either 'submitted' (backend) or 'in_progress' (smart contract equivalent)
+    if (job.status !== 'submitted' && job.status !== 'in_progress') {
+      return res.status(400).json({ 
+        message: `Job is not ready for approval. Current status: ${job.status}. Job must be marked as complete by freelancer.` 
+      });
     }
 
     // Find the submission
@@ -169,8 +173,8 @@ exports.approveProject = async (req, res) => {
     job.updatedAt = new Date();
     await job.save();
 
-    // TODO: Release escrow payment here
-    // This would integrate with your smart contract to release funds
+    // Note: Smart contract payment release is handled by the frontend
+    // The frontend will call the releasePayment function on the smart contract
 
     res.json({ message: 'Project approved successfully. Payment will be released.' });
 

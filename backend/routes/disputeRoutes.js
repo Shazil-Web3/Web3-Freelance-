@@ -14,6 +14,13 @@ const upload = multer({
 // Create a new dispute
 router.post('/create', authenticateJWT, disputeController.createDispute);
 
+// Dispute resolver routes - MUST come before parameterized routes
+// Check if user is dispute resolver
+router.get('/resolver/check', authenticateJWT, disputeController.checkDisputeResolver);
+
+// Get all disputes (for dispute resolvers)
+router.get('/resolver/all', authenticateJWT, disputeController.getAllDisputes);
+
 // Upload evidence for a dispute
 router.post('/:disputeId/evidence', authenticateJWT, upload.array('files', 5), disputeController.uploadEvidence);
 
@@ -22,5 +29,14 @@ router.get('/:disputeId', authenticateJWT, disputeController.getDisputeDetails);
 
 // Get all disputes for a user
 router.get('/user/all', authenticateJWT, disputeController.getUserDisputes);
+
+// Get disputes for a specific job
+router.get('/job/:jobId', authenticateJWT, disputeController.getJobDisputes);
+
+// Resolve dispute (dispute resolver)
+router.post('/:disputeId/resolve', authenticateJWT, disputeController.resolveDispute);
+
+// Cancel project (dispute resolver)
+router.post('/:disputeId/cancel', authenticateJWT, disputeController.cancelProject);
 
 module.exports = router;

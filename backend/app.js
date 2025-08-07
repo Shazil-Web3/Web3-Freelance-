@@ -23,9 +23,6 @@ app.use('/api/submissions', require('./routes/projectSubmissionRoutes'));
 app.use('/api/disputes', require('./routes/disputeRoutes'));
 app.use('/api/test', require('./routes/testRoutes'));
 
-// Debug routes
-app.use('/api', require('./debug-endpoint'));
-
 // Error handler
 app.use(errorHandler);
 

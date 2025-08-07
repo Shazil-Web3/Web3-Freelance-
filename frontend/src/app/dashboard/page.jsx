@@ -255,6 +255,33 @@ const Dashboard = () => {
     }
   }
 
+  // Check if job has disputes and their status
+  async function checkJobDisputeStatus(jobId) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/disputes/job/${jobId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        return data.disputes || [];
+      }
+      return [];
+    } catch (error) {
+      console.error('Error checking dispute status:', error);
+      return [];
+    }
+  }
+
+  // Check if a job was completed through dispute resolution
+  function wasJobCompletedThroughDispute(job) {
+    // This would need to be implemented based on your data structure
+    // For now, we'll check if the job status is completed and has any dispute history
+    return job.status === 'completed' && job.disputeResolved;
+  }
+
   function getApplicationsReceived() {
     if (!dashboardData?.applicationsReceived) return [];
     return dashboardData.applicationsReceived.filter(app => app.job);
@@ -281,10 +308,12 @@ const Dashboard = () => {
   }
 
   function getOngoingJobsClient() {
+    // Filter out completed jobs (including those completed through dispute resolution)
     return getJobsPosted().filter(job => ['assigned', 'in_progress', 'submitted'].includes(job.status));
   }
 
   function getOngoingJobsFreelancer() {
+    // Filter out completed jobs (including those completed through dispute resolution)
     return getJobsAssigned().filter(job => ['assigned', 'in_progress'].includes(job.status));
   }
 
